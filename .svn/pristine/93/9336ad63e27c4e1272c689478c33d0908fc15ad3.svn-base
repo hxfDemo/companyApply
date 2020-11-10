@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.apply.ism.mapper.SurveyInfoMapper">
+  <resultMap id="BaseResultMap" type="com.apply.ism.entity.SurveyInfo">
+    <id column="id" jdbcType="BIGINT" property="id" />
+    <result column="create_id" jdbcType="BIGINT" property="createId" />
+    <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
+    <result column="update_id" jdbcType="BIGINT" property="updateId" />
+    <result column="update_time" jdbcType="TIMESTAMP" property="updateTime" />
+    <result column="data_state" jdbcType="VARCHAR" property="dataState" />
+    <result column="sort" jdbcType="INTEGER" property="sort" />
+    <result column="version_no" jdbcType="BIGINT" property="versionNo" />
+    <result column="remarks" jdbcType="VARCHAR" property="remarks" />
+    <result column="spare1" jdbcType="VARCHAR" property="spare1" />
+    <result column="spare2" jdbcType="VARCHAR" property="spare2" />
+    <result column="spare3" jdbcType="VARCHAR" property="spare3" />
+    <result column="yz_code" jdbcType="VARCHAR" property="yzCode" />
+    <result column="companyid" jdbcType="BIGINT" property="companyid" />
+    <result column="survey_name" jdbcType="VARCHAR" property="surveyName" />
+    <result column="survey_type" jdbcType="INTEGER" property="surveyType" />
+    <result column="qr_code" jdbcType="VARCHAR" property="qrCode" />
+    <result column="start_time" jdbcType="TIMESTAMP" property="startTime" />
+    <result column="end_time" jdbcType="TIMESTAMP" property="endTime" />
+    <result column="years" jdbcType="VARCHAR" property="years" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    id, create_id, create_time, update_id, update_time, data_state, sort, version_no, 
+    remarks, spare1, spare2, spare3, yz_code, companyid, survey_name, survey_type, qr_code,
+    start_time,end_time,years
+  </sql>
+  <select id="getSurveyInfoList" resultType="java.util.Map">
+    SELECT s.companyid,s.yz_code,c.company,s.survey_name,s.start_time,s.end_time,s.qr_code FROM survey_info s JOIN company c ON s.companyid=c.id
+    WHERE 1 = 1 AND s.data_state = 'Normal'
+    <if test="param1 != null and param1 !=''">
+      AND c.company LIKE CONCAT('%',#{param1},'%')
+    </if>
+    <if test="param2 != null and param2 > 0">
+      AND s.companyid=#{param2}
+    </if>
+  </select>
+
+</mapper>

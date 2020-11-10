@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE generatorConfiguration
+        PUBLIC "-//mybatis.org//DTD MyBatis Generator Configuration 1.0//EN"
+        "http://mybatis.org/dtd/mybatis-generator-config_1_0.dtd">
+<generatorConfiguration>
+
+    <!--配置时 修改到项目的 mysql jar 下 指定数据连接驱动jar地址 -->
+
+    <context id="context1" targetRuntime="Mybatis3">
+        <property name="javaFileEncoding" value="UTF-8"/>
+        <property name="isMergeable" value="false" />
+        <plugin type="com.apply.ism.common.generator.LombokPlugin">
+            <property name="hasLombok" value="true"/>
+        </plugin>
+        <commentGenerator type="com.apply.ism.common.generator.MyCommentGenerator">
+        </commentGenerator>
+        <!-- jdbc连接 -->
+        <jdbcConnection driverClass="xxx"
+                        connectionURL="xxx"
+                        userId="xxx" password="xxx">
+            <property name="useInformationSchema" value="true"></property>
+            <property name="nullCatalogMeansCurrent" value="true"></property>
+        </jdbcConnection>
+        <javaTypeResolver
+                type="com.apply.ism.common.generator.SelfJavaTypeResolverImpl"></javaTypeResolver>
+        <!-- 配置model的位置 -->
+        <javaModelGenerator targetPackage="xxx"
+                            targetProject="xxx">
+            <property name="trimString" value="true"/>
+        </javaModelGenerator>
+        <!-- 配置mapper.xml的位置 -->
+        <sqlMapGenerator targetPackage="mapper.hotel"
+                         targetProject="xxx">
+            <property name="enableSubPackages" value="true"/>
+        </sqlMapGenerator>
+
+        <!-- DAO 的位置 -->
+        <javaClientGenerator targetPackage="xxx"
+                             targetProject="xxx"
+                             type="XMLMAPPER">
+            <property name="enableSubPackags" value="true"/>
+        </javaClientGenerator>
+
+        <!-- 设置转换的表名 -->
+
+        <table schema="xx" tableName="xxx"
+               enableCountByExample="false" domainObjectName="xxx"
+               enableDeleteByExample="false" enableSelectByExample="false"
+               enableUpdateByExample="false">
+        </table>
+
+    </context>
+</generatorConfiguration>

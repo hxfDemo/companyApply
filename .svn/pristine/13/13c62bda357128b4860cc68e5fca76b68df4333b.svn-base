@@ -1,0 +1,235 @@
+package com.apply.ism.controller;
+
+import com.alibaba.fastjson.JSONArray;
+import com.apply.ism.common.Result;
+import com.apply.ism.common.constants.TimeConstants;
+import com.apply.ism.common.utils.TimeUtils;
+import com.apply.ism.common.utils.TokenUtil;
+import com.apply.ism.entity.Company;
+import com.apply.ism.entity.TKnowledgeTest;
+import com.apply.ism.entity.TPaper;
+import com.apply.ism.entity.Users;
+import com.apply.ism.mapper.*;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
+import java.util.*;
+
+@RequiredArgsConstructor
+@RestController
+@Log4j2
+@Validated
+@RequestMapping("/knowtest")
+public class TKnowledgeTestController {
+    @Autowired
+    private TKnowledgeTestMapper knowledgeTestMapper;
+
+    @Autowired
+    private TPaperMapper paperMapper;
+
+    @Autowired
+    private CompanyMapper companyMapper;
+
+    @Autowired
+    private UsersMapper usersMapper;
+
+    /**
+     * 测验列表、考试列表
+     * @param nd 年份
+     * @param testName 测验名称
+     * @return
+     */
+    @PostMapping("/getList")
+    public Result getList(String nd,String testName){
+        try {
+            Map<String,Object> colmnMap = new HashMap<>();
+            List<Map<String,Object>> data = new ArrayList<>();
+            if(StringUtils.isNotBlank(nd)){
+                colmnMap.put("nd",nd);
+            }
+            if(StringUtils.isNotBlank(testName)){
+                colmnMap.put("test_name",testName);
+            }
+            Users users = usersMapper.selectOne(new QueryWrapper<Users>().eq("data_state", "Normal").eq("id", TokenUtil.getUserId()));
+            if(null == users){
+                return Result.error(902,"当前账号已失效，请重新登陆或联系管理员");
+            }
+            //如果用户角色是考生或者单位，那么用户只能看到单位对应的考试信息
+            if("student".equals(users.getRole())||"user".equals(users.getRole())){
+                colmnMap.put("company_id",users.getCompanyid());
+            }
+//            data = knowledgeTestMapper.testLits(colmnMap);
+            data = knowledgeTestMapper.testList(nd,testName,users.getCompanyid());
+            return Result.ok(data);
+        }catch (Exception e){
+            e.printStackTrace();
+            return Result.error(901,"获取信息失败！");
+        }
+    }
+
+    /**
+     * 新增测验
+     * @param testName
+     * @param nd
+     * @param testNode
+     * @param companyId
+     * @param manNum
+     * @param startTime
+     * @param endTime
+     * @param testTime
+     * @return
+     */
+
+    @PostMapping("/insert")
+    public Result insert( @NotBlank(message = "测验名字不能为空") String testName, @NotBlank(message = "年份不能为空")String nd, String testNode,
+                                 String companyId, @NotNull Integer manNum,String startTime,
+                                 String endTime,@NotBlank String testTime){
+        try {
+            Users users = usersMapper.selectOne(new QueryWrapper<Users>().eq("data_state", "Normal").eq("id", TokenUtil.getUserId()));
+            if(null == users){
+                return Result.error(902,"当前账号已失效，请重新登陆或联系管理员");
+            }
+            String[] params = companyId.split(",");
+//            List<String> params = JSONArray.parseArray(companyId,String.class);
+            for (String com:params) {
+                Calendar c1 = Calendar.getInstance();   //当前日期
+                Calendar c2 = Calendar.getInstance();
+                c1.setTime(TimeUtils.TimeFormat(startTime, TimeConstants.PATTERN_YYYY_MM_DD_HH_MM_SS));
+                c2.setTime(TimeUtils.TimeFormat(endTime, TimeConstants.PATTERN_YYYY_MM_DD_HH_MM_SS));
+                Long times = Integer.valueOf(testTime)*60*1000l;
+                if((c2.getTimeInMillis()-c1.getTimeInMillis())<times){
+                    return Result.error(903,"设置的考试开始时间和考试结束时间的时间差小于考试总时长");
+                }
+                TKnowledgeTest knowledgeTest = new TKnowledgeTest();
+                String time = TimeUtils.dateToString(new Date(), TimeConstants.PATTERN_YYYYMMDDHHMMSS);
+                String testnum = "EM"+time+(int) ((Math.random() * 9 + 1) * 100000);
+                knowledgeTest.setTestName(testName);
+                knowledgeTest.setNd(nd);
+                knowledgeTest.setCompanyId(Long.valueOf(com));
+                knowledgeTest.setManNum(manNum);
+                knowledgeTest.setStartTime(TimeUtils.TimeFormat(startTime, TimeConstants.PATTERN_YYYY_MM_DD_HH_MM_SS));
+                knowledgeTest.setEndTime(TimeUtils.TimeFormat(endTime, TimeConstants.PATTERN_YYYY_MM_DD_HH_MM_SS));
+                knowledgeTest.setTestTime(testTime);
+                knowledgeTest.setTestNum(testnum);
+                if(StringUtils.isNotBlank(testNode)){
+                    knowledgeTest.setTestNode(testNode);
+                }
+                knowledgeTest.setCreateId(TokenUtil.getUserId());
+                knowledgeTest.setCreateTime(new Date());
+                int insert = knowledgeTestMapper.insert(knowledgeTest);
+                if(insert<=0){
+                    return Result.error(902,"添加测验失败");
+                }
+            }
+
+            return Result.ok("添加测验成功");
+        }catch (Exception e){
+            return Result.error(901,e.getMessage());
+        }
+    }
+
+    /**
+     * 新增或编辑测验信息
+     * @param id
+     * @param testName
+     * @param nd
+     * @param testNode
+     * @param companyId
+     * @param manNum 考生人数
+     * @param startTime 考生开始试卷
+     * @param endTime 结束时间
+     * @param testTime 考试总时长
+     * @return
+     */
+    @PostMapping("/insertOrupdate")
+    public Result insertOrupdate(Long id, @NotBlank(message = "测验名字不能为空") String testName, @NotBlank(message = "年份不能为空")String nd, String testNode,
+                                 @NotNull Long companyId, @NotNull Integer manNum,
+                                 String startTime,
+                                 String endTime,@NotBlank String testTime){
+        try {
+            Users users = usersMapper.selectOne(new QueryWrapper<Users>().eq("data_state", "Normal").eq("id", TokenUtil.getUserId()));
+            if(null == users){
+                return Result.error(902,"当前账号已失效，请重新登陆或联系管理员");
+            }
+            Calendar c1 = Calendar.getInstance();   //当前日期
+            Calendar c2 = Calendar.getInstance();
+            c1.setTime(TimeUtils.TimeFormat(startTime, TimeConstants.PATTERN_YYYY_MM_DD_HH_MM_SS));
+            c2.setTime(TimeUtils.TimeFormat(endTime, TimeConstants.PATTERN_YYYY_MM_DD_HH_MM_SS));
+            Long times = Integer.valueOf(testTime)*60*1000l;
+            if((c2.getTimeInMillis()-c1.getTimeInMillis())<times){
+                return Result.error(903,"设置的考试开始时间和考试结束时间的时间差小于考试总时长");
+            }
+            TKnowledgeTest knowledgeTest = new TKnowledgeTest();
+            String time = TimeUtils.dateToString(new Date(), TimeConstants.PATTERN_YYYYMMDDHHMMSS);
+            String testnum = "EM"+time+(int) ((Math.random() * 9 + 1) * 100000);
+            knowledgeTest.setTestName(testName);
+            knowledgeTest.setNd(nd);
+            knowledgeTest.setCompanyId(companyId);
+            knowledgeTest.setManNum(manNum);
+            knowledgeTest.setStartTime(TimeUtils.TimeFormat(startTime, TimeConstants.PATTERN_YYYY_MM_DD_HH_MM_SS));
+            knowledgeTest.setEndTime(TimeUtils.TimeFormat(endTime, TimeConstants.PATTERN_YYYY_MM_DD_HH_MM_SS));
+            knowledgeTest.setTestTime(testTime);
+            knowledgeTest.setTestNum(testnum);
+            if(StringUtils.isNotBlank(testNode)){
+                knowledgeTest.setTestNode(testNode);
+            }
+            if(null==id){
+                knowledgeTest.setCreateId(TokenUtil.getUserId());
+                knowledgeTest.setCreateTime(new Date());
+                int insert = knowledgeTestMapper.insert(knowledgeTest);
+                if(insert<=0){
+                    return Result.error(902,"添加测验失败");
+                }
+            }else{
+                knowledgeTest.setId(id);
+                knowledgeTest.setUpdateId(TokenUtil.getUserId());
+                knowledgeTest.setUpdateTime(new Date());
+                int update = knowledgeTestMapper.updateById(knowledgeTest);
+                if(update<=0){
+                    return Result.error(902,"编辑测验失败");
+                }
+            }
+            return Result.ok("添加或编辑测验成功");
+        }catch (Exception e){
+            return Result.error(901,e.getMessage());
+        }
+    }
+
+    /**
+     * 删除测验
+     * @param id
+     * @return
+     */
+    @PostMapping("/deleteOne")
+    public Result deleteOne(@NotNull Long id){
+        try {
+            Map<String,Object> colmn1Map = new HashMap<>();
+            Map<String,Object> colmn2Map = new HashMap<>();
+            colmn1Map.put("data_state","Normal");
+            colmn1Map.put("knowledge_test_id",id);
+            List<TPaper> tPapers = paperMapper.selectByMap(colmn1Map);
+            if(tPapers.size()>0 || !tPapers.isEmpty()){
+                return Result.error(902,"请先删除测验对应的试卷");
+            }
+            colmn2Map.put("data_state","Normal");
+            colmn2Map.put("id",id);
+            int delete = knowledgeTestMapper.deleteByMap(colmn2Map);
+            if (delete<=0){
+                return Result.error(903,"删除测验失败");
+            }
+            return Result.ok("删除测验成功");
+        }catch (Exception e){
+            return Result.error(901,e.getMessage());
+        }
+    }
+}

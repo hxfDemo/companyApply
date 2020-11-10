@@ -1,0 +1,72 @@
+package com.apply.ism.service.impl;
+
+import com.apply.ism.entity.TUserAnswer;
+import com.apply.ism.entity.TUserTest;
+import com.apply.ism.mapper.TQuestionMapper;
+import com.apply.ism.mapper.TUserAnswerMapper;
+import com.apply.ism.mapper.TUserTestMapper;
+import com.apply.ism.service.TUserAnswerService;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@Service
+@Log4j2
+@RequiredArgsConstructor
+public class TUserAnswerServiceImpl extends ServiceImpl<TUserAnswerMapper, TUserAnswer> implements TUserAnswerService {
+
+    @Autowired
+    private TUserAnswerMapper userAnswerMapper;
+
+    @Autowired
+    private TUserTestMapper userTestMapper;
+
+    @Autowired
+    private TQuestionMapper questionMapper;
+
+    @Override
+    public Map<String, Object> insertOne(List<TUserAnswer> userAnswers, TUserTest userTest,Long uid) {
+        Map<String,Object> map = new HashMap<>();
+
+        for (TUserAnswer un:userAnswers) {
+            un.setCreateTime(new Date());
+            un.setCreateId(uid);
+            un.setUserId(uid);
+            int insert1 = userAnswerMapper.insert(un);
+            if(insert1<=0){
+                map.put("data",0);
+                log.error("保存用户答案失败");
+                map.put("msg","交卷失败");
+                return map;
+            }
+        }
+
+        int insert = userTestMapper.insert(userTest);
+        if(insert<=0){
+            map.put("data",0);
+            log.error("保存用户和测试关联关系失败");
+            map.put("msg","交卷失败");
+            return map;
+        }
+        Double aDouble = questionMapper.sumScore(userTest.getPaperId(), uid, userTest.getKnowledgeTestId(), userTest.getTestType());
+        String score = String.valueOf(aDouble);
+        userTest.setRemarks(score);
+        int i = userTestMapper.updateById(userTest);
+        if(i<=0){
+            map.put("data",0);
+            log.error("保存用户考试得分失败");
+            map.put("msg","交卷失败");
+            return map;
+        }
+        map.put("data",1);
+        map.put("msg","交卷成功");
+        return map;
+    }
+}

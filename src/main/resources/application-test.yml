@@ -1,0 +1,29 @@
+server:
+  port: 8087
+  error:
+    path: /company/error
+    response-json-include-trace: false
+spring:
+  datasource:
+    url: jdbc:mysql://192.168.1.249:3306/advancedtest?autoReconnect=false&useUnicode=true&characterEncoding=utf8&allowMultiQueries=true&useSSL=false&serverTimezone=Asia/Shanghai
+    username: jhsoft
+    password: junhong123
+    driver-class-name: com.mysql.jdbc.Driver
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+  mvc:
+    static-path-pattern: /wenmingban/**
+  resources:
+    static-locations: file:ideaWorkSpace\codes\company-apply\file
+api:
+  base:
+    upload:
+      path: ideaWorkSpace\codes\company-apply\file
+    qrcode:
+#      url: http://192.168.0.151:1000/#/mbl
+      url: http://117.159.25.242:8083/#/mbl
+logging:
+  level:
+    com.apply.ism.mapper : debug

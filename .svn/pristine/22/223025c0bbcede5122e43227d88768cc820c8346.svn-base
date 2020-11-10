@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.apply.ism.mapper.MaterialInfoMapper">
+    <resultMap id="BaseResultMap" type="com.apply.ism.entity.MaterialInfo">
+        <id column="id" jdbcType="BIGINT" property="id" />
+        <result column="create_id" jdbcType="BIGINT" property="createId" />
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
+        <result column="update_id" jdbcType="BIGINT" property="updateId" />
+        <result column="update_time" jdbcType="TIMESTAMP" property="updateTime" />
+        <result column="data_state" jdbcType="VARCHAR" property="dataState" />
+        <result column="sort" jdbcType="INTEGER" property="sort" />
+        <result column="version_no" jdbcType="BIGINT" property="versionNo" />
+        <result column="title" jdbcType="VARCHAR" property="title" />
+        <result column="user_id" jdbcType="BIGINT" property="userId" />
+        <result column="company_id" jdbcType="BIGINT" property="companyId" />
+        <result column="evaluation_id" jdbcType="BIGINT" property="evaluationId" />
+        <result column="file_id" jdbcType="BIGINT" property="fileId" />
+        <result column="auditstate" jdbcType="VARCHAR" property="auditstate" />
+        <result column="auditor" jdbcType="BIGINT" property="auditor" />
+        <result column="audit_opinion" jdbcType="VARCHAR" property="auditOpinion" />
+        <result column="score" jdbcType="DOUBLE" property="score" />
+        <result column="remarks" jdbcType="VARCHAR" property="remarks" />
+        <result column="spare1" jdbcType="VARCHAR" property="spare1" />
+        <result column="spare2" jdbcType="VARCHAR" property="spare2" />
+        <result column="spare3" jdbcType="VARCHAR" property="spare3" />
+        <result column="nd" jdbcType="VARCHAR" property="nd" />
+        <result column="project_name" jdbcType="VARCHAR" property="projectName" />
+        <result column="company" jdbcType="VARCHAR" property="company" />
+        <result column="ascription" jdbcType="BIGINT" property="ascription" />
+        <result column="hierarchy" jdbcType="BIGINT" property="hierarchy" />
+        <result column="tontru" jdbcType="BIGINT" property="tontru" />
+        <result column="file_path" jdbcType="VARCHAR" property="filePath" />
+        <result column="contents" property="contents" jdbcType="LONGVARCHAR" />
+    </resultMap>
+    <sql id="Base_Column_List">
+        id, create_id, create_time, update_id, update_time, data_state, sort, version_no, title,
+        user_id, company_id, evaluation_id, file_id, auditstate, auditor, audit_opinion,
+        score, remarks, spare1, spare2, spare3
+    </sql>
+
+    <select id="selectFileScore" resultType="java.util.Map">
+        SELECT m.title,m.score,c.company,c.tontru,c.hierarchy,s.nd FROM material_info m
+        LEFT JOIN company c ON c.id=m.company_id AND c.data_state='Normal'
+        LEFT JOIN t_system s ON s.id=m.evaluation_id AND s.data_state='Normal'
+        <where>
+            m.data_state='Normal'
+            <if test="nd != null and nd !=''">
+                AND s.nd=#{nd}
+            </if>
+            <if test="ascription != null">
+                AND c.ascription=#{ascription}
+            </if>
+            <if test="company != null and company !=''">
+                AND c.company=#{company}
+            </if>
+            <if test="hierarchy != null">
+                AND c.hierarchy=#{hierarchy}
+            </if>
+            <if test="tontru != null">
+                AND c.tontru=#{tontru}
+            </if>
+
+        </where>
+    </select>
+
+    <select id="selectFileTotalScore" resultType="java.util.Map">
+        SELECT SUM(m.score) as totalScore,c.company,c.tontru,c.hierarchy,c.id,s.nd FROM material_info m
+        LEFT JOIN company c ON c.id=m.company_id AND c.data_state='Normal'
+        LEFT JOIN t_system s ON s.id=m.evaluation_id AND s.data_state='Normal'
+        <where>
+            m.data_state='Normal'
+            <if test="nd != null and nd !=''">
+                AND s.nd=#{nd}
+            </if>
+            <if test="ascription != null">
+                AND c.ascription=#{ascription}
+            </if>
+            <if test="company != null and company !=''">
+                AND c.company=#{company}
+            </if>
+            <if test="hierarchy != null">
+                AND c.hierarchy=#{hierarchy}
+            </if>
+            <if test="tontru != null">
+                AND c.tontru=#{tontru}
+            </if>
+            GROUP BY c.id
+        </where>
+    </select>
+
+    <select id="selectByMap" resultType="java.util.Map">
+        SELECT m.id,m.title,c.company,c.hierarchy,m.score,l.file_path filePath,t.project_name projectName,t.contents,m.file_id fileId,t.standard,t.fraction FROM material_info m
+        LEFT JOIN company c ON m.company_id=c.id AND c.data_state='Normal'
+        LEFT JOIN t_system t ON m.evaluation_id=t.id AND m.data_state='Normal'
+        LEFT JOIN file_message l ON l.id=m.file_id AND l.data_state='Normal'
+        <where>
+            m.data_state='Normal'
+            <if test="nd != null and nd !=''">
+                AND t.nd=#{nd}
+            </if>
+            <if test="projectName != null and projectName !='' and projectName != 'null'">
+                AND t.project_name=#{projectName}
+            </if>
+            <if test="ascription != null">
+                AND c.ascription=#{ascription}
+            </if>
+            <if test="company != null and company !=''">
+                AND c.company=#{company}
+            </if>
+            <if test="hierarchy != null">
+                AND c.hierarchy=#{hierarchy}
+            </if>
+            <if test="tontru != null">
+                AND c.tontru=#{tontru}
+            </if>
+            <if test="evaluationId != null">
+                AND m.evaluation_id=#{evaluationId}
+            </if>
+        </where>
+    </select>
+
+    <select id="selectByFileId" resultType="com.apply.ism.entity.MaterialInfo">
+        select id,create_id,create_time,update_id,update_time,
+        data_state,sort,version_no,title,user_id,company_id,evaluation_id,file_id,
+        auditstate,auditor,audit_opinion,score,remarks
+        from material_info where data_state='Normal'
+        <if test="fileId != null">
+            and file_id = #{fileId}
+        </if>
+    </select>
+    <select id="selectByEvaluationId" resultType="com.apply.ism.entity.MaterialInfo">
+        select id,create_id,create_time,update_id,update_time,
+        data_state,sort,version_no,title,user_id,company_id,evaluation_id,file_id,
+        auditstate,auditor,audit_opinion,score,remarks
+        from material_info where data_state='Normal'
+        <if test="evaluationId != null">
+            and evaluation_id = #{evaluationId}
+        </if>
+    </select>
+    <select id="selectById" resultType="com.apply.ism.entity.MaterialInfo">
+        select id,create_id,create_time,update_id,update_time,
+        data_state,sort,version_no,title,user_id,company_id,evaluation_id,file_id,
+        auditstate,auditor,audit_opinion,score,remarks
+        from material_info where data_state='Normal'
+        <if test="evaluationId != null">
+            and id = #{id}
+        </if>
+    </select>
+
+    <update id="updateScore">
+        update material_info set auditstate=#{auditstate,jdbcType=VARCHAR},
+        auditor=#{auditor,jdbcType=BIGINT},audit_opinion=#{auditOpinion,jdbcType=VARCHAR},
+        score=#{score,jdbcType=DOUBLE}
+        where id=#{id}
+    </update>
+
+
+
+</mapper>

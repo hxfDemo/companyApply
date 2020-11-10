@@ -1,0 +1,666 @@
+package com.apply.ism.controller;
+
+import com.apply.ism.common.Result;
+import com.apply.ism.common.constants.RequestMappingConstant;
+import com.apply.ism.common.constants.TimeConstants;
+import com.apply.ism.common.enums.Enums;
+import com.apply.ism.common.utils.FileType;
+import com.apply.ism.common.utils.TimeUtils;
+import com.apply.ism.common.utils.TokenUtil;
+import com.apply.ism.entity.*;
+import com.apply.ism.mapper.DeclareInfoMapper;
+import com.apply.ism.mapper.TKnowledgeTestMapper;
+import com.apply.ism.mapper.UsersMapper;
+import com.apply.ism.service.*;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.github.pagehelper.PageHelper;
+import com.github.pagehelper.PageInfo;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import javax.validation.constraints.Min;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.time.LocalDateTime;
+import java.util.*;
+
+@RequiredArgsConstructor
+@RestController
+@Log4j2
+@Validated
+@RequestMapping(value = RequestMappingConstant.SERVICE_PREFIX)
+public class ApiController {
+
+    @Autowired
+    private IUsersService iUsersService;
+
+    @Autowired
+    private ICompanyService iCompanyService;
+
+    @Autowired
+    private IFileMessageService iFileMessageService;
+
+    @Autowired
+    private IDeclareInfoService iDeclareInfoService;
+
+    @Autowired
+    private TKnowledgeTestMapper tKnowledgeTestMapper;
+
+    @Autowired
+    private ISurveyInfoService iSurveyInfoService;
+
+    @Value("${api.base.upload.path}")
+    private String filePath;
+
+    private String Catalog = "/officefile/";//文件夹目录
+
+    /**
+     * 单位用户注册
+     * @param username
+     * @param password
+     * @param pwd
+     * @param sswmb
+     * @param dwmc
+     * @param dwxz
+     * @param dwlb
+     * @param dqcj
+     * @param ssxt
+     * @param zctc
+     * @param zcdw
+     * @param sftl
+     * @param name
+     * @param email
+     * @param tel
+     * @param phone
+     * @param address
+     * @param dwjs
+     * @param sfbm
+     * @param bzrs
+     * @param dmzlx
+     * @param jgdmzid
+     * @param bzwjid
+     * @return
+     */
+    @PostMapping("/register")
+    public Result register(@NotBlank(message = "用户名[username]不能为空值") String username, @NotBlank(message = "密码[password]不能为空值") String password,
+                           @NotBlank(message = "确认密码[pwd]不能为空值") String pwd, @Min(value = 0, message = "所属文明办[sswmb]必须大于等于0") Integer sswmb,
+                           @NotBlank(message = "单位名称[dwmc]不能为空值") String dwmc, @Min(value = 0, message = "单位性质[dwxz]必须大于等于0") Integer dwxz,
+                           @Min(value = 0, message = "单位类别[dwlb]必须大于等于0")Integer dwlb, @Min(value = 0, message = "当前层级[dqcj]必须大于等于0") Integer dqcj,
+                           Integer ssxt, @Min(value = 0, message = "主创同创[zctc]必须大于等于0") Integer zctc, Integer zcdw, Integer sftl,
+                           @NotBlank(message = "联系人[name]不能为空值") String name, @NotBlank(message = "邮箱[email]不能为空值")String email,
+                           @NotBlank(message = "联系电话[tel]不能为空值") String tel,String phone,
+                           @NotBlank(message = "单位地址[address]不能为空值") String address, String dwjs,
+                           @Min(value = 0, message = "是否保密[sfbm]必须大于等于0") Integer sfbm, @Min(value = 0, message = "编制人数[bzrs]必须大于等于0") Integer bzrs,
+                           Integer dmzlx, Integer jgdmzid,
+                           Integer bzwjid){
+        //获取注册信息处理注册逻辑
+        Users usr = iUsersService.getUserInfo(username);
+        if (usr!=null){
+            return Result.fail(102,"该账号已注册！");
+        }
+        if (iUsersService.getOne(new QueryWrapper<Users>().eq("mailbox",email).eq("data_state","Normal"))!=null){
+            return Result.fail(102,"该邮箱已使用！");
+        }
+        if (iCompanyService.getOne(new QueryWrapper<Company>().eq("company",dwmc).eq("data_state","Normal"))!=null){
+            return Result.fail(102,"单位名称已存在！");
+        }
+        if (!password.equals(pwd)){
+            return Result.fail(102,"两次密码输入不一致！");
+        }
+        if (phone!=null&&!phone.equals("")){
+            if (iUsersService.getOne(new QueryWrapper<Users>().eq("phone",phone.trim()))!=null){
+                return Result.fail(102,"该手机号已使用！");
+            };
+        }
+        Company company = new Company();
+        company.setAscription(Long.valueOf(sswmb));
+        company.setCompany(dwmc);
+        company.setNature(Long.valueOf(dwxz));
+        company.setCategory(Long.valueOf(dwlb));
+        company.setHierarchy(Long.valueOf(dqcj));
+        company.setCreateTime(new Date());
+        company.setSecrecy(sfbm);
+        if (dmzlx!=null&&dmzlx>0){
+            company.setCodeType(Long.valueOf(dmzlx));
+        }
+        if (ssxt!=null&&ssxt>0){
+            company.setSsxt(Long.valueOf(ssxt));
+        }
+        company.setTontru(zctc);
+        if (zcdw!=null&&zcdw>0){
+            company.setZcdw(Long.valueOf(zcdw));
+        }
+        if (sftl!=null&&sftl>0){
+            company.setSftl(sftl);
+        }
+        company.setAddress(address);
+        if (dwjs!=null){
+            company.setIntroduce(dwjs);
+        }
+        company.setBzrs(bzrs);
+        if (jgdmzid!=null&&jgdmzid>0){
+            company.setJgdmz(Long.valueOf(jgdmzid));
+        }
+        if (bzwjid!=null&&bzwjid>0){
+            company.setBzwj(Long.valueOf(bzwjid));
+        }
+        boolean b = iCompanyService.save(company);
+        if (b){
+            Users users = new Users();
+            users.setUsername(username);
+            users.setPassword(DigestUtils.md5Hex(password+TokenUtil.SECRET+username));
+            users.setRole("user");
+            users.setName(name);
+            users.setTel(tel);
+            users.setCreateTime(new Date());
+            users.setPhone(phone);
+            users.setMailbox(email);
+            users.setUserstate(0);//设置默认未审核
+            users.setCompanyid(company.getId());
+            boolean save = iUsersService.save(users);
+            if (!save){
+                return Result.error(203,"注册失败！");
+            }
+        }
+        return Result.ok("注册成功，审核需要1个工作日，审核之后可以登录");
+    }
+
+    /**
+     * 登录
+     * @param username
+     * @param password
+     * @return
+     */
+    @PostMapping(value = "/login")
+    public Result login(String username, String password) {
+        Users user = iUsersService.getUserInfo(username);
+        if (user==null){
+            return Result.fail(102,"账号不存在！");
+        }
+        if (user.getDataState() == null || !user.getDataState().equals("Normal")){
+            return Result.fail(102,"此账号不可用！");
+        }
+        if (user.getPassword() == null || !user.getPassword().equals(DigestUtils.md5Hex(password+TokenUtil.SECRET+user.getUsername()))){
+            return Result.fail(102,"登录密码不正确！");
+        }
+        if (user.getUserstate()!=1){
+            return Result.fail(102,"审核未通过，暂不能登录！");
+        }
+        String token= TokenUtil.sign(user);
+        HashMap<String,Object> hs=new HashMap<>();
+        hs.put("token",token);
+        hs.put("info",user);
+        return Result.ok(hs);
+    }
+
+    /**
+     * 附件上传
+     * @param file
+     * @return
+     */
+    @PostMapping("/fileUpload")
+    @ResponseBody
+    public Result fileUpload(@RequestParam()MultipartFile file){
+        if (file.isEmpty()) {
+            return Result.fail(203,"上传失败，请选择文件");
+        }
+        //获取InputStream
+        InputStream in = null;
+        try {
+            in = file.getInputStream();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        //根据文件头获取文件类型
+        String type = FileType.getFileType(in);
+        System.out.println("上传的文件类型："+type);
+        String suffix=file.getOriginalFilename().substring(file.getOriginalFilename().lastIndexOf(".") + 1);
+        if (type!=null&&!type.equalsIgnoreCase("pdf")&&!type.equalsIgnoreCase("word")
+                &&!type.equalsIgnoreCase("excel")&&!type.equalsIgnoreCase("jpg")
+                &&!type.equalsIgnoreCase("png")&&!type.equalsIgnoreCase("docx")
+                &&!type.equalsIgnoreCase("doc")&&!type.equalsIgnoreCase("vsd")
+                &&!type.equalsIgnoreCase("wps")){
+            return Result.fail(202,"上传失败,只能上传pdf、word、excel、jpg、png格式文件");
+        }
+        String fileName = System.currentTimeMillis()+"."+suffix;
+        int size = (int) file.getSize();
+        System.out.println(file.getOriginalFilename() + "-->" + size);
+        File dest = new File(filePath +Catalog+ fileName);
+        if (!dest.getParentFile().exists()){//判断文件父目录是否存在
+            dest.getParentFile().mkdirs();
+        }
+        FileMessage fileMessage = new FileMessage();
+        try {
+            file.transferTo(dest);
+            fileMessage.setFileName(file.getOriginalFilename());
+            fileMessage.setFilePath(Catalog+ fileName);
+            fileMessage.setType(suffix);
+            fileMessage.setCreateTime(new Date());
+            boolean f = iFileMessageService.save(fileMessage);
+            if (f){
+                log.info("上传成功");
+            }else {
+                return Result.fail(201,"上传失败");
+            }
+        }catch (IllegalStateException e){
+            e.printStackTrace();
+            return Result.fail(202,"上传失败");
+        }catch (IOException e) {
+            log.error(e.toString(), e);
+            return Result.fail(203,"上传失败");
+        }
+        HashMap<String,Object> hs=new HashMap<>();
+        hs.put("file_id",fileMessage.getId());
+        return Result.ok(hs);
+    }
+
+    /**
+     * 注册单位审核列表
+     * @param dwmc
+     * @param sswmb
+     * @param shzt
+     * @param dqcj
+     * @param sort_time
+     * @param sort_shzt
+     * @param current
+     * @param size
+     * @return
+     */
+    @PostMapping("/userList")
+    public Result userList(String dwmc,Long sswmb,Integer shzt,Long dqcj,String sort_time, String sort_shzt, Integer current, Integer size){
+        String role = iUsersService.getRole(TokenUtil.getUserId());
+        if (role.isEmpty()){
+            return Result.error(901,"获取权限失败！");
+        }
+        if (!role.equals("admin")){
+            return Result.error(901,"无此权限！");
+        }
+        HashMap<String,Object> hs=new HashMap<>();
+        PageHelper.startPage(current!=null?current:1,size!=null?size:10);
+        List<Map<String,Object>> lists = iUsersService.getUserList(dwmc,sswmb,shzt,dqcj,sort_time==null||sort_time.equals("")?"DESC":sort_time,sort_shzt==null||sort_shzt.equals("")?"DESC":sort_shzt);
+        PageInfo<Map<String, Object>> page = new PageInfo<Map<String, Object>>(lists);
+        hs.put("page",page);
+        return Result.ok(hs);
+    }
+
+    /**
+     * 重置密码
+     * @param id
+     * @param pwd
+     * @param pwd1
+     * @return
+     */
+    @PostMapping("/resetPassword")
+    public Result resetPassword(Long id,String pwd,String pwd1){
+        if (!pwd.equals(pwd1)){
+            return Result.error(203,"两次密码不一致！");
+        }
+        Users byId = iUsersService.getById(id);
+        byId.setPassword(DigestUtils.md5Hex(pwd+ TokenUtil.SECRET+byId.getUsername()));
+        byId.setUpdateId(TokenUtil.getUserId());
+        boolean b = iUsersService.updateById(byId);
+        if (!b){
+            return Result.error(203,"重置密码保存失败！");
+        }
+        return Result.ok("重置密码成功！");
+    }
+
+    /**
+     * 获取注册单位审核信息
+     * @param id
+     * @return
+     */
+    @PostMapping("/getUserAuditInfo")
+    public Result getUserAuditInfo(@NotNull(message = "ID[id]不能为空") Long id){
+        HashMap<String,Object> hs=new HashMap<>();
+        Map<String,Object> user_info=iUsersService.getUserAuditInfo(id);
+        if (user_info == null){
+            return Result.error(203,"获取单位注册信息失败！");
+        }
+        FileMessage jgdmz = null;
+        if (user_info.get("jgdmz")!=null&&!user_info.get("jgdmz").equals("")){
+            jgdmz = iFileMessageService.getById(Long.valueOf(user_info.get("jgdmz") + ""));
+        }
+        FileMessage bzwj = null;
+        if (user_info.get("bzwj")!=null&&!user_info.get("bzwj").equals("")){
+            bzwj = iFileMessageService.getById(Long.valueOf(user_info.get("bzwj") + ""));
+        }
+        user_info.put("jgdmz",jgdmz!=null?jgdmz.getFilePath():"");
+        user_info.put("jgdmzName",jgdmz!=null?jgdmz.getFileName():"");
+        user_info.put("bzwj",bzwj!=null?bzwj.getFilePath():"");
+        user_info.put("bzwjName",bzwj!=null?bzwj.getFileName():"");
+        hs.put("info",user_info);
+        return Result.ok(hs);
+    }
+
+    /**
+     * 注册单位审核
+     * @param id
+     * @param auditStatus
+     * @return
+     */
+    @PostMapping("/usersAudit")
+    public Result usersAudit(@NotNull(message = "ID[id]不能为空") Long id, @NotNull(message = "审核状态[auditStatus]不能为空") Integer auditStatus){
+        log.info("审核传入用户id:{}，传入审核状态：{}",id,auditStatus);
+        Users byId = iUsersService.getById(id);
+        if (byId==null){
+            return Result.error(203,"获取单位注册信息失败！");
+        }
+        if (byId.getUserstate()==1){
+            return Result.error(203,"审核已通过，无法重复操作！");
+        }
+        byId.setUserstate(auditStatus);
+        boolean b = iUsersService.updateById(byId);
+        if (!b){
+            return Result.error(203,"审核保存信息失败！");
+        }
+        return Result.ok("审核保存信息成功！");
+    }
+
+    /**
+     * 删除注册单位信息
+     * @param id
+     * @return
+     */
+    @PostMapping("/usersDelete")
+    public Result usersDelete(@NotNull(message = "ID[id]不能为空") Long id){
+        Users byId = iUsersService.getById(id);
+        if (byId==null){
+            return Result.fail(203,"获取单位注册信息失败！");
+        }
+        List<DeclareInfo> declareInfos = iDeclareInfoService.getBaseMapper().selectList(new QueryWrapper<DeclareInfo>().eq("company_id",byId.getCompanyid()));
+        if (!declareInfos.isEmpty()&&declareInfos.size()>0){
+            return Result.fail(203,"申报中或已申报不能删除！");
+        }
+        List<TKnowledgeTest> tKnowledgeTests = tKnowledgeTestMapper.selectList(new QueryWrapper<TKnowledgeTest>().eq("company_id",byId.getCompanyid()));
+        if (!tKnowledgeTests.isEmpty()&&tKnowledgeTests.size()>0){
+            return Result.fail(203,"已考试或考试中不能删除！");
+        }
+        List<SurveyInfo> list = iSurveyInfoService.getBaseMapper().selectList(new QueryWrapper<SurveyInfo>().eq("companyid",byId.getCompanyid()));
+        if (!list.isEmpty()&&list.size()>0){
+            return Result.fail(203,"问卷调查中不能删除！");
+        }
+        int b = iUsersService.getBaseMapper().deleteById(byId);
+        if (b<=0){
+            return Result.fail(203,"删除保存信息失败！");
+        }
+        Company company = iCompanyService.getById(byId.getCompanyid());
+        iCompanyService.getBaseMapper().deleteById(company);
+        return Result.ok("删除保存信息成功！");
+    }
+
+    /**
+     * 获取单位列表
+     * @return
+     */
+    @PostMapping("/companyList")
+    public Result companyList(){
+        Map<String,Object> map = new HashMap<>();
+        List<Company> companyList = iCompanyService.list(new QueryWrapper<Company>().eq("data_state", "Normal"));
+        map.put("list",companyList);
+        return Result.ok(map);
+    }
+
+    /**
+     * 单位操作新增考生
+     * @param sdtPwd
+     * @param sdtpHone
+     * @return
+     */
+    @PostMapping("/addStudents")
+    public Result addStudents(@NotBlank(message = "手机号[studentpHone]不能为空值")String sdtpHone, @NotBlank(message = "用户姓名[studentName]不能为空值")String name,
+                              @NotBlank(message = "密码[studentPwd]不能为空值")String sdtPwd){
+        try {
+            Long userId = TokenUtil.getUserId();
+            String role = iUsersService.getRole(userId);
+            if (role.isEmpty()){
+                return Result.error(901,"获取权限失败！");
+            }
+            if (!role.equals("user")){
+                return Result.error(901,"无此权限！");
+            }
+            Users usr = iUsersService.getUserInfo(sdtpHone);
+            if (usr!=null){
+                return Result.fail(102,"该用户已存在！");
+            }
+            if (iUsersService.getOne(new QueryWrapper<Users>().eq("phone",sdtpHone.trim()))!=null){
+                return Result.fail(102,"该手机号已使用！");
+            };
+            Users id = iUsersService.getOne(new QueryWrapper<Users>().eq("id", userId));
+            if (id == null || id.getCompanyid() == null){
+                log.error("获取单位信息："+id);
+                return Result.error(902,"添加失败");
+            }
+            Users users = new Users();
+            users.setName(name.trim());
+            users.setUsername(sdtpHone.trim());
+            users.setPhone(sdtpHone.trim());
+            users.setRole("student");
+            users.setUserstate(1);
+            users.setCreateTime(new Date());
+            users.setCreateId(userId);
+            users.setCompanyid(id.getCompanyid());
+            users.setPassword(DigestUtils.md5Hex(sdtPwd+ TokenUtil.SECRET+sdtpHone));
+            boolean save = iUsersService.save(users);
+            if (!save){
+                return Result.error(902,"添加失败");
+            }
+        }catch (Exception e){
+            return Result.error(901,e.getMessage());
+        }
+        return Result.ok("添加成功！");
+    }
+
+    /**
+     * 获取考生列表
+     * @param current
+     * @param size
+     * @return
+     */
+    @PostMapping("/studentsList")
+    public Result studentsList(String name,Integer current,Integer size){
+        HashMap<String,Object> hs=new HashMap<>();
+        try {
+            Long userId = TokenUtil.getUserId();
+            System.out.println("当前用户id："+userId);
+            String role = iUsersService.getRole(userId);
+            if (role.isEmpty()){
+                return Result.error(901,"获取权限失败！");
+            }
+            if (!role.equals("user")){
+                return Result.error(901,"无此权限！");
+            }
+            Users users = iUsersService.getOne(new QueryWrapper<Users>().eq("id", userId));
+            if (users==null){
+                return Result.error(203,"获取当前用户信息失败！");
+            }
+            PageHelper.startPage(current!=null?current:1,size!=null?size:10);
+            QueryWrapper queryWrapper= new QueryWrapper<Users>();
+            queryWrapper.select("id,username,name,phone");
+            queryWrapper.eq("companyid", users.getCompanyid());
+            queryWrapper.eq("data_state", "Normal");
+            queryWrapper.eq("role", "student");
+            if (name!=null){
+                queryWrapper.like("name", name);
+            }
+            List<Map<String, Object>> studentList = iUsersService.getBaseMapper().selectMaps(queryWrapper);
+            PageInfo<Map<String, Object>> page = new PageInfo<Map<String, Object>>(studentList);
+            hs.put("page",page);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        return Result.ok(hs);
+    }
+
+    /**
+     * 个人基本信息
+      * @return
+     */
+    @PostMapping("/myMessage")
+    public Result myMessage(){
+        Long userId = TokenUtil.getUserId();
+        Map<String,Object> userInfo=iUsersService.getMap(new QueryWrapper<Users>().select("id,name,phone,tel,mailbox,companyid,role").eq("id",userId));
+        if (userInfo.isEmpty()){
+            return Result.error(203,"获取个人基本信息失败！");
+        }
+        if (userInfo.get("companyid")!=null&&userInfo.get("role").equals("user")){
+            Company company = iCompanyService.getById(Long.valueOf(userInfo.get("companyid") + ""));
+            if (company == null){
+                return Result.error(203,"获取个人基本信息失败！");
+            }
+            userInfo.put("ascription",company.getAscription()!=null?company.getAscription():"");
+            userInfo.put("company",company.getCompany()!=null?company.getCompany():"");
+            userInfo.put("nature",company.getNature()!=null?company.getNature():"");
+            userInfo.put("category",company.getCategory()!=null?company.getCategory():"");
+            userInfo.put("hierarchy",company.getHierarchy()!=null?company.getHierarchy():"");
+            userInfo.put("ssxt",company.getSsxt()!=null?company.getSsxt():"");
+            userInfo.put("tontru",company.getTontru()!=null?company.getTontru():"");
+            userInfo.put("zcdw",company.getZcdw()!=null?company.getZcdw():"");
+            userInfo.put("sftl",company.getSftl()!=null?company.getSftl():"");
+            userInfo.put("address",company.getAddress()!=null?company.getAddress():"");
+            userInfo.put("introduce",company.getIntroduce()!=null?company.getIntroduce():"");
+            userInfo.put("secrecy",company.getSecrecy()!=null?company.getSecrecy():"");
+            userInfo.put("bzrs",company.getBzrs()!=null?company.getBzrs():"");
+            userInfo.put("code_type",company.getCodeType()!=null?company.getCodeType():"");
+            if (company.getJgdmz()!=null){
+                FileMessage file = iFileMessageService.getById(company.getJgdmz());
+                    userInfo.put("jgdmz",file!=null?file.getFilePath():"");
+                    userInfo.put("jgdmzName",file!=null?file.getFileName():"");
+            }else {
+                userInfo.put("jgdmz","");
+            }
+            if (company.getBzwj()!=null){
+                FileMessage file = iFileMessageService.getById(company.getBzwj());
+                userInfo.put("bzwj",file!=null?file.getFilePath():"");
+                userInfo.put("bzwjName",file!=null?file.getFileName():"");
+            }else {
+                userInfo.put("bzwj","");
+            }
+        }
+        return Result.ok(userInfo);
+    }
+
+    /**
+     * 修改用户信息
+     * @param id id
+     * @param sswmb 所属文明办
+     * @param dwmc 单位名称
+     * @param dwxz 单位性质
+     * @param dwlb 单位类别
+     * @param dqcj 当前层级
+     * @param ssxt 所属系统
+     * @param zctc 主创同创
+     * @param zcdw 主创单位
+     * @param sftl 是否同楼
+     * @param name 名字
+     * @param email 邮箱
+     * @param tel 联系电话
+     * @param phone 手机号
+     * @param address 单位地址
+     * @param dwjs 单位介绍
+     * @param sfbm 是否保密
+     * @param bzrs 编制人数
+     * @param dmzlx 代码证
+     * @param jgdmzid 机构代码附件id
+     * @param bzwjid 编制文件附件id
+     * @return
+     */
+    @PostMapping("/updateUserInfo")
+    public Result updateUserInfo(@NotNull(message = "用户Id[id]不能为空值") Long id, Integer sswmb, String dwmc, Integer dwxz,
+                           Integer dwlb, Integer dqcj,Integer ssxt, Integer zctc, Integer zcdw, Integer sftl,
+                           @NotBlank(message = "联系人[name]不能为空值") String name, String email, String tel,String phone,String address, String dwjs, Integer sfbm, Integer bzrs,
+                           Integer dmzlx, Integer jgdmzid,Integer bzwjid){
+        Users usr = iUsersService.getById(id);
+        if (usr == null){
+            return Result.fail(102,"获取用户信息失败");
+        }
+        Users one = iUsersService.getOne(new QueryWrapper<Users>().eq("mailbox", email).eq("data_state", "Normal"));
+        if (one!=null&&one.getId().intValue()!=usr.getId().intValue()){
+            return Result.fail(102,"该邮箱已使用！");
+        }
+        Company dw = iCompanyService.getOne(new QueryWrapper<Company>().eq("company", dwmc).eq("data_state", "Normal"));
+        if (dw!=null&&dw.getId().intValue()!=usr.getCompanyid().intValue()){
+            return Result.fail(102,"单位名称已存在！");
+        }
+        if (phone!=null&&!phone.equals("")&&!phone.equals("undefined")){
+            Users ph = iUsersService.getOne(new QueryWrapper<Users>().eq("phone", phone.trim()));
+            if (ph!=null&&!ph.getPhone().equals(usr.getPhone())){
+                return Result.fail(102,"该手机号已使用！");
+            };
+        }
+        if (usr.getCompanyid()!=null){
+            Company company = iCompanyService.getById(usr.getCompanyid());
+            company.setAscription(Long.valueOf(sswmb));
+            company.setCompany(dwmc);
+            company.setNature(Long.valueOf(dwxz));
+            company.setCategory(Long.valueOf(dwlb));
+            company.setHierarchy(Long.valueOf(dqcj));
+            company.setUpdateTime(new Date());
+            company.setUpdateId(usr.getId());
+            company.setSecrecy(sfbm);
+            if (dmzlx!=null&&dmzlx>0){
+                company.setCodeType(Long.valueOf(dmzlx));
+            }
+            if (ssxt!=null&&ssxt>0){
+                company.setSsxt(Long.valueOf(ssxt));
+            }
+            company.setTontru(zctc);
+            if (zcdw!=null&&zcdw>0){
+                company.setZcdw(Long.valueOf(zcdw));
+            }
+            if (sftl!=null&&sftl>0){
+                company.setSftl(sftl);
+            }
+            company.setAddress(address);
+            if (dwjs!=null){
+                company.setIntroduce(dwjs);
+            }
+            company.setBzrs(bzrs);
+            if (jgdmzid!=null&&jgdmzid>0){
+                company.setJgdmz(Long.valueOf(jgdmzid));
+            }
+            if (bzwjid!=null&&bzwjid>0){
+                company.setBzwj(Long.valueOf(bzwjid));
+            }
+            boolean b = iCompanyService.updateById(company);
+            if (b){
+                usr.setName(name);
+                usr.setTel(tel);
+                usr.setUpdateTime(new Date());
+                usr.setPhone(phone);
+                usr.setMailbox(email);
+                boolean save = iUsersService.updateById(usr);
+                if (!save){
+                    return Result.error(203,"修改个人信息失败！");
+                }
+            }
+        }else {
+            usr.setName(name);
+            if (!tel.isEmpty()&&!tel.equals("undefined")){
+                usr.setTel(tel);
+            }
+            usr.setUpdateTime(new Date());
+            if(!phone.isEmpty()&&!phone.equals("undefined")){
+                usr.setPhone(phone);
+            }
+            if (!email.isEmpty()&&!email.equals("undefined")){
+                usr.setMailbox(email);
+            }
+            boolean save = iUsersService.updateById(usr);
+            if (!save){
+                return Result.error(203,"修改个人信息失败！");
+            }
+        }
+        return Result.ok("修改个人信息成功！");
+    }
+}

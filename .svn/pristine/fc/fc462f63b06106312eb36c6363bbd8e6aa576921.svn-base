@@ -1,0 +1,163 @@
+package com.apply.ism.entity;
+
+import com.baomidou.mybatisplus.annotation.TableName;
+import java.io.Serializable;
+import java.time.LocalDateTime;
+import java.util.Date;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+/**
+ *
+ * @author Leon
+ * @date 2020-04-22
+ */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@TableName("company")
+public class Company extends BaseEntity implements Serializable {
+    /**
+     * 创建者Id
+     */
+    private Long createId;
+
+    /**
+     * 创建时间
+     */
+    private Date createTime;
+
+    /**
+     * 修改者Id
+     */
+    private Long updateId;
+
+    /**
+     * 修改时间
+     */
+    private Date updateTime;
+
+    /**
+     * 数据状态
+     */
+    private String dataState;
+
+    /**
+     * 排序
+     */
+    private Integer sort;
+
+    /**
+     * version字段
+     */
+    private Long versionNo;
+
+    /**
+     * 备注
+     */
+    private String remarks;
+
+    /**
+     * 备用字段1
+     */
+    private String spare1;
+
+    /**
+     * 备用字段2
+     */
+    private String spare2;
+
+    /**
+     * 备用字段3
+     */
+    private String spare3;
+
+    /**
+     * 所属文明办
+     */
+    private Long ascription;
+
+    /**
+     * 单位名称
+     */
+    private String company;
+
+    /**
+     * 单位性质
+     */
+    private Long nature;
+
+    /**
+     * 单位类别
+     */
+    private Long category;
+
+    /**
+     * 单位层级
+     */
+    private Long hierarchy;
+
+    /**
+     * 所属系统（单位层级为xx系统时可能会有所属系统）
+     */
+    private Long ssxt;
+
+    /**
+     * 是否同创
+     */
+    private Integer tontru;
+
+    /**
+     * 主创单位（当同创时会有主创单位）
+     */
+    private Long zcdw;
+
+    /**
+     * 是否同楼
+     */
+    private Integer sftl;
+
+    /**
+     * 单位地址
+     */
+    private String address;
+
+    /**
+     * 单位介绍
+     */
+    private String introduce;
+
+    /**
+     * 是否保密
+     */
+    private Integer secrecy;
+
+    /**
+     * 编制人数
+     */
+    private Integer bzrs;
+
+    /**
+     * 代码证类型
+     */
+    private Long codeType;
+
+    /**
+     * 机构代码证附件Id
+     */
+    private Long jgdmz;
+
+    /**
+     * 编制文件附件Id
+     */
+    private Long bzwj;
+
+    /**
+     * 单位状态
+     */
+    private Integer companyState;
+
+    private static final long serialVersionUID = 1L;
+}

@@ -1,0 +1,7 @@
+package com.apply.ism.service;
+
+import com.apply.ism.entity.AnswerInfo;
+import com.baomidou.mybatisplus.extension.service.IService;
+
+public interface IAnswerInfoService extends IService<AnswerInfo> {
+}

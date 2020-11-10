@@ -1,0 +1,328 @@
+package com.apply.ism.controller;
+
+import com.apply.ism.common.Result;
+import com.apply.ism.common.utils.TokenUtil;
+import com.apply.ism.entity.FileMessage;
+import com.apply.ism.entity.MaterialInfo;
+import com.apply.ism.entity.TSystem;
+import com.apply.ism.entity.Users;
+import com.apply.ism.mapper.FileMessageMapper;
+import com.apply.ism.mapper.UsersMapper;
+import com.apply.ism.service.IUsersService;
+import com.apply.ism.service.MaterialInfoService;
+import com.apply.ism.service.TSystemService;
+import com.apply.ism.utils.ReadExcel;
+import com.apply.ism.utils.TSystemTreeUtil;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.github.pagehelper.PageHelper;
+import com.github.pagehelper.PageInfo;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
+import org.icepdf.core.pobjects.Document;
+import org.icepdf.core.util.GraphicsRenderingHints;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+
+import javax.imageio.ImageIO;
+import javax.servlet.http.HttpServletRequest;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
+import java.awt.image.BufferedImage;
+import java.awt.image.RenderedImage;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.*;
+
+@RequiredArgsConstructor
+@RestController
+@Log4j2
+@Validated
+@RequestMapping("/sys")
+public class TSystemController {
+
+    @Autowired
+    private TSystemService tSystemService;
+
+    @Autowired
+    private MaterialInfoService materialInfoService;
+
+    @Autowired
+    private FileMessageMapper fileMessageMapper;
+
+    @Autowired
+    private UsersMapper usersMapper;
+
+    @Autowired
+    private IUsersService iUsersService;
+
+    @Value("${api.base.upload.path}")
+    private String filePath;
+
+    private String Catalog = "/officefile/";//文件夹目录
+
+    /**
+     * 上传excel测评体系
+     * @param file
+     * @param nd
+     * @return
+     */
+    @PostMapping("/uploadExcel")
+    public Result uploadExcel(MultipartFile file, @NotBlank(message = "年份[nd]不能为空")String nd){
+
+        if(file.isEmpty()){
+            return Result.error(903,"上传文件为空");
+        }
+        try {
+            File dir = new File(filePath+Catalog);
+            if(!dir.exists()){
+                dir.mkdir();
+            }
+            String filename = file.getOriginalFilename();
+            File dest = new File(filePath+Catalog+filename);
+            try {
+                file.transferTo(dest);
+                InputStream is = new FileInputStream(dest);
+                Map<String, List<TSystem>> listMap = ReadExcel.addReportByExcel(is, filename);
+                if(null == listMap){
+                    return Result.error(904,"上传文件内容为空");
+                }
+                int batchInsert = tSystemService.excelInsert(listMap, nd);
+                if (batchInsert<=0){
+                    return Result.error(902,"上传失败");
+                }
+                return Result.ok("上传成功");
+            }catch (Exception e){
+                return Result.error(901,e.getMessage());
+            }
+        }catch (Exception e){
+            return Result.error(901,e.getMessage());
+        }
+    }
+
+    /**
+     * 查询测评体系
+     * @param nd
+     * @return
+     */
+    @PostMapping("/findTree")
+    public Result findTree(@NotBlank(message = "查询年份[nd]不能为空") String nd){
+        try {
+            Map<String, Object> returnMap = new HashMap<>();
+            List<TSystem> tSystemList = tSystemService.selectAll(nd);
+            List<Object> list = tSystemService.menuList(tSystemList);
+            if (list.size()<=0 || list.isEmpty()){
+                return Result.error(902,"没有数据");
+            }
+            returnMap.put("list", list.get(0));
+            return Result.ok(returnMap);
+        }catch (Exception e){
+            e.printStackTrace();
+            return Result.error(901,e.getMessage());
+        }
+    }
+
+    /**
+     * 上传文件
+     * @param request
+     * @param file
+     * @return
+     */
+    @PostMapping("/uploadPDF")
+    public Result uploadPDF(HttpServletRequest request,MultipartFile[] file,@NotNull(message = "测评指标id[evaluationId]不能为空")Long evaluationId,
+                            @NotBlank(message = "材料标题[fileTitle]不能为空") String fileTitle){
+        try {
+            if(file.length == 0){
+                return Result.error(903,"上传文件不能为空");
+            }
+            if (file.length > 1){
+                return Result.error(903,"暂不支持上传多个文件");
+            }
+            File dir = new File(filePath+Catalog);
+            if(!dir.exists()){
+                dir.mkdir();
+            }
+            String role = iUsersService.getRole(TokenUtil.getUserId());
+            if (role.isEmpty()){
+                return Result.error(901,"获取权限失败！");
+            }
+            if (!role.equals("user")){
+                return Result.error(901,"无此权限！");
+            }
+            //获取操作对象
+            Users users = usersMapper.selectOne(new QueryWrapper<Users>().eq("data_state", "Normal").eq("id", TokenUtil.getUserId()));
+            if(null == users){
+                return Result.error(904,"当前登陆账号失效，请联系管理员");
+            }
+            try {
+                String ext = file[0].getOriginalFilename().substring(file[0].getOriginalFilename().indexOf("."));
+                //文件存放的路径
+//                String path = Catalog+file[0].getOriginalFilename();
+                String path = Catalog+System.currentTimeMillis()+ext;
+                //服务器端保存的文件对象
+                File serverFile = new File(filePath+path);
+                //将上传的文件写入的服务器端文件内
+                file[0].transferTo(serverFile);
+                int pdfInsert = materialInfoService.pdfInsert(evaluationId, fileTitle, users, file[0].getOriginalFilename(), path);
+                if(pdfInsert<=0){
+                    return Result.error(902,"上传附件失败");
+                }
+            } catch (IOException e) {
+                return Result.error(901,e.getMessage());
+            }
+            return Result.ok("上传成功");
+        }catch (Exception e){
+            return Result.error(901,e.getMessage());
+        }
+    }
+
+    /**
+     * 审核打分
+     * @param id 资料信息id
+     * @param state 审核状态
+     * @param score 打分
+     * @param auditOpinion 审核意见
+     * @return
+     */
+    @PostMapping("/updateFileState")
+    public Result updateFileState(@NotNull(message = "资料信息id不能为空") Long id,
+                                  @NotBlank(message = "审核状态state不能为空") String state,
+                                  Double score,String auditOpinion){
+        try {
+            MaterialInfo one = materialInfoService.selectById(id);
+            if (null == one){
+                return Result.error(903,"资料信息不存在");
+            }
+            MaterialInfo se = new MaterialInfo();
+            se.setId(one.getId());
+            se.setAuditstate(state);
+            se.setScore(score);
+            if(null!=auditOpinion&&!"undefined".equals(auditOpinion)&&!"".equals(auditOpinion)){
+                se.setAuditOpinion(auditOpinion);
+            }
+            se.setAuditor(TokenUtil.getUserId());//用户id
+            int update = materialInfoService.updateScore(se);
+            if(update<=0){
+                return Result.error(902,"审核操作失败");
+            }
+            return Result.ok("已审核");
+        }catch (Exception e){
+            return Result.error(901,e.getMessage());
+        }
+    }
+
+    /**
+     * 审核打分查询
+     * @param nd
+     * @param projectName
+     * @param ascription
+     * @param company
+     * @param hierarchy
+     * @param tontru
+     * @return
+     */
+    @PostMapping("/getScore")
+    public Result getScore(String nd, String projectName, Long ascription, String company, Long hierarchy, Long tontru,@NotNull(message = "测评指标ID[evaluationId]不能为空") Long evaluationId){
+        try {
+            List<Map<String,Object>> materialInfos = materialInfoService.selectByMap(nd, projectName, ascription, company, hierarchy, tontru,evaluationId);
+            if(materialInfos.size()<=0 ||materialInfos.isEmpty()){
+                return Result.ok("没有数据");
+            }
+            Map<String,Object> map = new HashMap<>();
+            map.put("list",materialInfos);
+            return Result.ok(map);
+        }catch (Exception e){
+            return Result.error(901,e.getMessage());
+        }
+    }
+
+    @PostMapping("/pdfTojpg")
+    public Result pdfTojpg(@NotNull Long id){
+        try {
+            FileMessage fileMessage = fileMessageMapper.selectById(id);
+            if(null == fileMessage){
+                return Result.error(903,"不存在");
+            }
+            String jpgfilepath = Catalog+ UUID.randomUUID() +".jpg";
+            Document document = new Document();
+            document.setFile(filePath+fileMessage.getFilePath());
+            float scale = 2.5f;// 缩放比例
+            float rotation = 0f;// 旋转角度
+            for (int i = 0; i < document.getNumberOfPages(); i++) {
+                BufferedImage image = (BufferedImage) document.getPageImage(i,
+                        GraphicsRenderingHints.SCREEN,
+                        org.icepdf.core.pobjects.Page.BOUNDARY_CROPBOX, rotation,
+                        scale);
+                RenderedImage rendImage = image;
+                try {
+                    File file = new File(filePath+jpgfilepath);
+                    ImageIO.write(rendImage, "jpg", file);
+                } catch (IOException e) {
+                    return Result.error(901,e.getMessage());
+                }
+                image.flush();
+            }
+            document.dispose();
+            return Result.ok(jpgfilepath);
+        }catch (Exception e){
+            return Result.error(901,e.getMessage());
+        }
+    }
+
+    /**
+     * 资料成绩查询
+     * @param nd
+     * @param ascription
+     * @param company
+     * @param hierarchy
+     * @param tontru
+     * @param current
+     * @param size
+     * @return
+     */
+    @PostMapping("/selectFileScore")
+    public Result selectFileScore(String nd, Long ascription, String company, Long hierarchy, Long tontru,Integer current,Integer size){
+        Map<String,Object> map = new HashMap<>();
+        try {
+            PageHelper.startPage(current!=null?current:1,size!=null?size:10);
+            List<Map<String, Object>> maps = materialInfoService.selectFileScore(nd, ascription, company, hierarchy, tontru);
+            PageInfo<Map<String, Object>> page = new PageInfo<Map<String, Object>>(maps);
+            map.put("page",page);
+            return Result.ok(map);
+        }catch (Exception e){
+            return Result.error(901,e.getMessage());
+        }
+    }
+
+    /**
+     * 单位总成绩查询
+     * @param nd
+     * @param ascription
+     * @param company
+     * @param hierarchy
+     * @param tontru
+     * @param current
+     * @param size
+     * @return
+     */
+    @PostMapping("/selectFileTotalScore")
+    public Result selectFileTotalScore(String nd, Long ascription, String company, Long hierarchy, Long tontru,Integer current,Integer size){
+        Map<String,Object> map = new HashMap<>();
+        try {
+            PageHelper.startPage(current!=null?current:1,size!=null?size:10);
+            List<Map<String, Object>> maps = materialInfoService.selectFileTotalScore(nd, ascription, company, hierarchy, tontru);
+            PageInfo<Map<String, Object>> page = new PageInfo<Map<String, Object>>(maps);
+            map.put("page",page);
+            return Result.ok(map);
+        }catch (Exception e){
+            return Result.error(901,e.getMessage());
+        }
+    }
+}

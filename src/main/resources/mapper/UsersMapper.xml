@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.apply.ism.mapper.UsersMapper">
+    <resultMap id="BaseResultMap" type="com.apply.ism.entity.Users">
+        <id column="id" jdbcType="INTEGER" property="id" />
+        <result column="create_id" jdbcType="BIGINT" property="createId" />
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
+        <result column="update_id" jdbcType="BIGINT" property="updateId" />
+        <result column="update_time" jdbcType="TIMESTAMP" property="updateTime" />
+        <result column="data_state" jdbcType="VARCHAR" property="dataState" />
+        <result column="sort" jdbcType="INTEGER" property="sort" />
+        <result column="version_no" jdbcType="BIGINT" property="versionNo" />
+        <result column="role" jdbcType="VARCHAR" property="role" />
+        <result column="username" jdbcType="VARCHAR" property="username" />
+        <result column="password" jdbcType="VARCHAR" property="password" />
+        <result column="name" jdbcType="VARCHAR" property="name" />
+        <result column="tel" jdbcType="VARCHAR" property="tel" />
+        <result column="phone" jdbcType="VARCHAR" property="phone" />
+        <result column="mailbox" jdbcType="VARCHAR" property="mailbox" />
+        <result column="usertype" jdbcType="INTEGER" property="usertype" />
+        <result column="userstate" jdbcType="INTEGER" property="userstate" />
+        <result column="companyid" jdbcType="BIGINT" property="companyid"/>
+        <result column="remarks" jdbcType="VARCHAR" property="remarks" />
+        <result column="spare1" jdbcType="VARCHAR" property="spare1" />
+        <result column="spare2" jdbcType="VARCHAR" property="spare2" />
+        <result column="spare3" jdbcType="VARCHAR" property="spare3" />
+        <result column="mntime" jdbcType="VARCHAR" property="mntime" />
+    </resultMap>
+    <sql id="Base_Column_List">
+        id, create_id, create_time, update_id, update_time, data_state, sort, version_no, role, username,
+        `password`, `name`, tel, phone, mailbox, usertype, userstate, companyid, remarks, spare1, spare2,
+        spare3,mntime
+    </sql>
+    <select id="getUserInfo" resultType="com.apply.ism.entity.Users">
+        select * from users where
+        <if test="param1 != null and param1 !=''">
+           username = #{username}
+        </if>
+    </select>
+    <select id="getUserList" resultType="java.util.Map">
+        SELECT u.username,u.`id`,u.`name`,c.`company`,c.`hierarchy`,c.`tontru`,c.ascription,u.`userstate`,DATE_FORMAT(u.`create_time`,'%Y-%m-%d %H:%i:%s') create_time FROM `users` u JOIN `company` c ON u.`companyid` = c.`id` WHERE 1=1 AND u.`data_state` = 'Normal' AND u.`role`='user'
+        <if test="param1 != null and param1 !=''">
+            AND c.company LIKE CONCAT('%',#{param1},'%')
+        </if>
+        <if test="param2 != null and param2 > 0">
+            AND c.ascription = #{param2}
+        </if>
+        <if test="param3 != null and param3 >= 0">
+            AND u.userstate = #{param3}
+        </if>
+        <if test="param4 != null and param4 > 0">
+            AND c.hierarchy = #{param4}
+        </if>
+        ORDER BY u.`create_time` ${param5},u.`userstate` ${param6}
+    </select>
+    <select id="getUserAuditInfo" resultType="java.util.Map">
+        SELECT
+        u.`id`,c.ascription,c.`company`,c.`nature`,c.`category`,c.`hierarchy`,c.`tontru`,c.`zcdw`,c.`sftl`,u.`name`,u.`mailbox`,u.`tel`,u.`phone`,c.`address`,c.`introduce`,c.`secrecy`,c.`bzrs`,c.`code_type`,c.`jgdmz`,c.`bzwj`,u.userstate
+        FROM users u JOIN company c ON u.`companyid` = c.`id` where u.id = #{id}
+    </select>
+    <select id="getUserlists" resultType="com.apply.ism.entity.Users">
+        SELECT
+            <include refid="Base_Column_List"/>
+        FROM
+            users
+        WHERE (id IN (${tcid}))
+    </select>
+    <select id="getuserkszt" resultType="java.util.Map">
+        select c.zsks zsks,c.mnks mnks,c.mnkskm mnkskm, c.zskskm zskskm, u.`name` name ,u.spare1 from users u  JOIN company c ON u.`companyid` = c.`id`   where u.id = #{id}
+    </select>
+</mapper>

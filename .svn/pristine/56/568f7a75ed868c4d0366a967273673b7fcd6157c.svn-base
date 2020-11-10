@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.apply.ism.mapper.TUserTestMapper">
+  <resultMap id="BaseResultMap" type="com.apply.ism.entity.TUserTest">
+    <id column="id" jdbcType="BIGINT" property="id" />
+    <result column="create_id" jdbcType="BIGINT" property="createId" />
+    <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
+    <result column="update_id" jdbcType="BIGINT" property="updateId" />
+    <result column="update_time" jdbcType="TIMESTAMP" property="updateTime" />
+    <result column="data_state" jdbcType="VARCHAR" property="dataState" />
+    <result column="sort" jdbcType="INTEGER" property="sort" />
+    <result column="version_no" jdbcType="BIGINT" property="versionNo" />
+    <result column="user_id" jdbcType="BIGINT" property="userId" />
+    <result column="knowledge_test_id" jdbcType="BIGINT" property="knowledgeTestId" />
+    <result column="paper_id" jdbcType="BIGINT" property="paperId" />
+    <result column="test_count" jdbcType="INTEGER" property="testCount" />
+    <result column="test_type" jdbcType="VARCHAR" property="testType" />
+    <result column="remarks" jdbcType="VARCHAR" property="remarks" />
+    <result column="spare1" jdbcType="VARCHAR" property="spare1" />
+    <result column="spare2" jdbcType="VARCHAR" property="spare2" />
+    <result column="spare3" jdbcType="VARCHAR" property="spare3" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    id, create_id, create_time, update_id, update_time, data_state, sort, version_no,
+    user_id, knowledge_test_id,paper_id, test_count,test_type, remarks, spare1, spare2, spare3
+  </sql>
+  <select id="getUserTest" resultMap="BaseResultMap" parameterType="Long">
+		SELECT  * FROM `t_user_test` WHERE id in(select max(id) as lsh  from t_user_test where data_state ='Normal' and test_type='模拟' group by user_id) and user_id=#{uid}
+  </select>
+</mapper>

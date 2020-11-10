@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.apply.ism.mapper.TQuestionMapper">
+  <resultMap id="BaseResultMap" type="com.apply.ism.entity.TQuestion">
+    <id column="id" jdbcType="BIGINT" property="id" />
+    <result column="create_id" jdbcType="BIGINT" property="createId" />
+    <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
+    <result column="update_id" jdbcType="BIGINT" property="updateId" />
+    <result column="update_time" jdbcType="TIMESTAMP" property="updateTime" />
+    <result column="data_state" jdbcType="VARCHAR" property="dataState" />
+    <result column="sort" jdbcType="INTEGER" property="sort" />
+    <result column="version_no" jdbcType="BIGINT" property="versionNo" />
+    <result column="title" jdbcType="VARCHAR" property="title" />
+    <result column="type" jdbcType="VARCHAR" property="type" />
+    <result column="knowledge_id" jdbcType="BIGINT" property="knowledgeId" />
+    <result column="right_answer" jdbcType="VARCHAR" property="rightAnswer" />
+    <result column="optionA" jdbcType="VARCHAR" property="optiona" />
+    <result column="optionB" jdbcType="VARCHAR" property="optionb" />
+    <result column="optionC" jdbcType="VARCHAR" property="optionc" />
+    <result column="optionD" jdbcType="VARCHAR" property="optiond" />
+    <result column="score" jdbcType="DOUBLE" property="score" />
+    <result column="nd" jdbcType="VARCHAR" property="nd" />
+    <result column="remarks" jdbcType="VARCHAR" property="remarks" />
+    <result column="spare1" jdbcType="VARCHAR" property="spare1" />
+    <result column="spare2" jdbcType="VARCHAR" property="spare2" />
+    <result column="spare3" jdbcType="VARCHAR" property="spare3" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    id, create_id, create_time, update_id, update_time, data_state, sort, version_no,
+    title, `type`, knowledge_id, right_answer, optionA, optionB, optionC, optionD, score,
+    nd, remarks, spare1, spare2, spare3
+  </sql>
+  <select id="sumScore" resultType="java.lang.Double">
+          SELECT sum(tq.score)  score from t_user_answer ua
+    left join t_question tq on  ua.question_id=tq.id
+    WHERE ua.uesr_answer=tq.right_answer
+    and ua.data_state='Normal'
+    and date_format(ua.create_time, '%Y') = date_format(now(), '%Y')
+    and ua.user_id=#{userId}
+
+  </select>
+  <select id="sumMnScore" resultType="java.lang.Double" parameterType="Long">
+    SELECT sum(tq.score)  score from t_user_answer ua
+    left join t_question tq on  ua.question_id=tq.id
+    WHERE ua.uesr_answer=tq.right_answer
+    and ua.data_state='Normal'
+    and date_format(ua.create_time, '%Y') = date_format(now(), '%Y')
+    and ua.user_id=#{uid}
+  </select>
+</mapper>

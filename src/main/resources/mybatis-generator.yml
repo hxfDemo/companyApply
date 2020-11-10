@@ -1,0 +1,35 @@
+mybatis.generator:
+    tables: file_message
+    moduleFile: company-apply
+    createDomain: true
+    createClientAndMapper: true
+    basePackage: com.apply.ism
+    workspace: "E:\\"
+
+    jdbc-driver: "com.mysql.cj.jdbc.Driver"
+    jdbc-url-params: "allowMultiQueries=true&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true"
+    jdbc-url: "jdbc:mysql://localhost:3306/advanced?autoReconnect=false&useUnicode=true&characterEncoding=utf8&allowMultiQueries=true&useSSL=false&serverTimezone=Asia/Shanghai"
+    jdbc-userId: "root"
+    jdbc-password: "123456"
+
+    createJavaClient: ${mybatis.generator.createClientAndMapper}
+    createMapper: ${mybatis.generator.createClientAndMapper}
+    exampleStatementEnabled: false
+    module: ${mybatis.generator.moduleFile}
+    file: "${mybatis.generator.workspace}\\${mybatis.generator.moduleFile}\\src\\main\\resources\\generatorConfig.xml"
+
+    classPathEntry: "C:\\Users\\Administrator\\.m2\\repository\\mysql\\mysql-connector-java\\8.0.17\\mysql-connector-java-8.0.17.jar"
+    targetProject: "${mybatis.generator.workspace}\\${mybatis.generator.module}\\src\\main\\java"
+    daoTargetPackage: ${mybatis.generator.basePackage}.mapper
+    mapperTargetPackage: mapper
+
+    mapperTargetProject: "${mybatis.generator.workspace}\\${mybatis.generator.module}\\src\\main\\resources"
+
+    domainModule: ${mybatis.generator.moduleFile}
+    domainBasePackage: ${mybatis.generator.basePackage}.entity
+    domainPackage: ${mybatis.generator.basePackage}.entity
+    domainTargetProject: "${mybatis.generator.workspace}\\${mybatis.generator.domainModule}\\src\\main\\java"
+    domainTargetPackage: ${mybatis.generator.domainBasePackage}
+
+    servicePackage: ${mybatis.generator.basePackage}.service
+    serviceTargetPackage: ${mybatis.generator.servicePackage}

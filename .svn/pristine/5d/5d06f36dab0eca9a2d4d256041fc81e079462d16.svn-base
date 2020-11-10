@@ -1,0 +1,119 @@
+package com.apply.ism.service.impl;
+
+import com.apply.ism.entity.TPaper;
+import com.apply.ism.entity.TPaperQuestion;
+import com.apply.ism.entity.TQuestion;
+import com.apply.ism.mapper.TPaperMapper;
+import com.apply.ism.mapper.TPaperQuestionMapper;
+import com.apply.ism.service.TPaperService;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@Service
+@Log4j2
+@RequiredArgsConstructor
+public class TPaperServiceImpl extends ServiceImpl<TPaperMapper, TPaper> implements TPaperService {
+
+    @Autowired
+    private TPaperMapper paperMapper;
+
+    @Autowired
+    private TPaperQuestionMapper paperQuestionMapper;
+
+    @Override
+    public Map<String,Object> createPaper(TPaper paper, List<TQuestion> singleQuestions, List<TQuestion> moreQuestions, List<TQuestion> judgeQuestions, List<TQuestion> tkQuestions) {
+        Map<String,Object> map = new HashMap<>();
+        int insert = paperMapper.insert(paper);
+        if(insert<=0){
+            map.put("data",0);
+            map.put("msg","生成试卷失败");
+            return map;
+        }
+        for (TQuestion q:singleQuestions) {
+            TPaperQuestion pq = new TPaperQuestion();
+            pq.setCreateTime(new Date());
+            pq.setPaperId(paper.getId());
+            pq.setQuestionId(q.getId());
+            int insert1 = paperQuestionMapper.insert(pq);
+            if(insert1<=0){
+                map.put("data",0);
+                map.put("msg","生成试卷对应的单选题失败");
+                return map;
+            }
+        }
+        for (TQuestion q:moreQuestions) {
+            TPaperQuestion pq = new TPaperQuestion();
+            pq.setCreateTime(new Date());
+            pq.setPaperId(paper.getId());
+            pq.setQuestionId(q.getId());
+            int insert1 = paperQuestionMapper.insert(pq);
+            if(insert1<=0){
+                map.put("data",0);
+                map.put("msg","生成试卷对应的多选题失败");
+                return map;
+            }
+        }
+        for (TQuestion q:judgeQuestions) {
+            TPaperQuestion pq = new TPaperQuestion();
+            pq.setCreateTime(new Date());
+            pq.setPaperId(paper.getId());
+            pq.setQuestionId(q.getId());
+            int insert1 = paperQuestionMapper.insert(pq);
+            if(insert1<=0){
+                map.put("data",0);
+                map.put("msg","生成试卷对应的判断题失败");
+                return map;
+            }
+        }
+        for (TQuestion q:tkQuestions) {
+            TPaperQuestion pq = new TPaperQuestion();
+            pq.setCreateTime(new Date());
+            pq.setPaperId(paper.getId());
+            pq.setQuestionId(q.getId());
+            int insert1 = paperQuestionMapper.insert(pq);
+            if(insert1<=0){
+                map.put("data",0);
+                map.put("msg","生成试卷对应的填空题失败");
+                return map;
+            }
+        }
+        map.put("data",1);
+        map.put("msg","生成试卷成功");
+        return map;
+    }
+
+    @Override
+    public Map<String,Object> deleteOne(Long id) {
+        Map<String,Object> map = new HashMap<>();
+        int delete = paperMapper.deleteById(id);
+        if(delete<=0){
+            map.put("data",0);
+            map.put("msg","删除试卷失败");
+            return map;
+        }
+        Map<String,Object> colmnmMap = new HashMap<>();
+        colmnmMap.put("paper_id",id);
+        int delete1 = paperQuestionMapper.deleteByMap(colmnmMap);
+        if (delete1<=0){
+            map.put("data",0);
+            map.put("msg","删除试卷对应的试题失败");
+            return map;
+        }
+        map.put("data",1);
+        map.put("msg","删除试卷成功");
+        return map;
+    }
+
+    @Override
+    public List<Map<String, Object>> getPaperList(String dwmc) {
+        return paperMapper.getPaperList(dwmc);
+    }
+}

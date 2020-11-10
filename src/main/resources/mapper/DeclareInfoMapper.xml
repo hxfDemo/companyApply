@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.apply.ism.mapper.DeclareInfoMapper">
+  <resultMap id="BaseResultMap" type="com.apply.ism.entity.DeclareInfo">
+    <id column="id" jdbcType="INTEGER" property="id" />
+    <result column="create_id" jdbcType="BIGINT" property="createId" />
+    <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
+    <result column="update_id" jdbcType="BIGINT" property="updateId" />
+    <result column="update_time" jdbcType="TIMESTAMP" property="updateTime" />
+    <result column="data_state" jdbcType="VARCHAR" property="dataState" />
+    <result column="sort" jdbcType="INTEGER" property="sort" />
+    <result column="version_no" jdbcType="BIGINT" property="versionNo" />
+    <result column="spare1" jdbcType="VARCHAR" property="spare1" />
+    <result column="spare2" jdbcType="VARCHAR" property="spare2" />
+    <result column="spare3" jdbcType="VARCHAR" property="spare3" />
+    <result column="userid" jdbcType="BIGINT" property="userid" />
+    <result column="company_id" jdbcType="BIGINT" property="companyId" />
+    <result column="declare_level" jdbcType="BIGINT" property="declareLevel" />
+    <result column="company" jdbcType="VARCHAR" property="company" />
+    <result column="dwxz" jdbcType="BIGINT" property="dwxz" />
+    <result column="address" jdbcType="VARCHAR" property="address" />
+    <result column="bzrs" jdbcType="BIGINT" property="bzrs" />
+    <result column="admin_name" jdbcType="VARCHAR" property="adminName" />
+    <result column="lxfs" jdbcType="VARCHAR" property="lxfs" />
+    <result column="department" jdbcType="VARCHAR" property="department" />
+    <result column="name_phone" jdbcType="VARCHAR" property="namePhone" />
+    <result column="lly_name" jdbcType="VARCHAR" property="llyName" />
+    <result column="tel" jdbcType="VARCHAR" property="tel" />
+    <result column="zip_code" jdbcType="INTEGER" property="zipCode" />
+    <result column="fax" jdbcType="VARCHAR" property="fax" />
+    <result column="years" jdbcType="VARCHAR" property="years" />
+    <result column="grade" jdbcType="BIGINT" property="grade" />
+    <result column="applytype" jdbcType="BIGINT" property="applytype" />
+    <result column="file_id" jdbcType="BIGINT" property="fileId" />
+    <result column="reward_info" jdbcType="LONGVARCHAR" property="rewardInfo" />
+    <result column="basic_info" jdbcType="LONGVARCHAR" property="basicInfo" />
+    <result column="audit_status" jdbcType="INTEGER" property="auditStatus" />
+    <result column="audit_time" jdbcType="INTEGER" property="auditTime" />
+    <result column="tcids" jdbcType="VARCHAR" property="tcids" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    id, create_id, create_time, update_id, update_time, dataState, sort, version_no, spare1,
+    spare2, spare3, userid, declare_level, company, dwxz, address, bzrs, admin_name, lxfs, department, name_phone, lly_name, tel, zip_code, fax,
+    `years`, grade, applytype, file_id, reward_info, basic_info,audit_status, audit_time,tcids
+  </sql>
+  <sql id="Blob_Column_List">
+    reward_info, basic_info
+  </sql>
+  <select id="declareList" resultType="java.util.Map">
+    SELECT d.`id`,c.`company`,d.`applytype`,c.`hierarchy`,d.`declare_level`,DATE_FORMAT(d.`create_time`,'%Y-%m-%d %H:%i:%s') create_time,d.`audit_status`,c.tontru FROM `declare_info` d JOIN `company` c ON d.`company_id`=c.`id` WHERE 1=1 AND d.data_state = 'Normal'
+    <if test="param1 != null and param1 !=''">
+      AND c.company LIKE CONCAT('%',#{param1},'%')
+    </if>
+    <if test="param2 != null and param2 > 0">
+      AND c.ascription = #{param2}
+    </if>
+    <if test="param3 != null and param3 >= 0">
+      AND d.audit_status = #{param3}
+    </if>
+    <if test="param4 != null and param4 > 0">
+      AND c.hierarchy = #{param4}
+    </if>
+    <if test="param5 != null and param5 > 0">
+      AND c.declare_level = #{param5}
+    </if>
+    ORDER BY d.`create_time` ${param6},d.`audit_status` ${param7}
+  </select>
+  <select id="getDeclareAuditInfo" resultType="java.util.Map">
+    SELECT
+      d.id,
+      d.declare_level,
+      d.company,
+      d.dwxz,
+      d.address,
+      d.bzrs,
+      d.admin_name,
+      d.lxfs,
+      d.department,
+      d.name_phone,
+      d.lly_name,
+      d.tel,
+      d.zip_code,
+      d.fax,
+      d.userid,
+      d.reward_info,
+      d.basic_info,
+      d.file_id,
+      d.audit_status,c.`tontru`,c.`zcdw`,c.id companyid
+    FROM
+      `declare_info` d
+        JOIN users u ON d.`userid`=u.`id`
+        JOIN company c ON c.`id` = u.`companyid`
+    WHERE 1 = 1 AND d.id = #{id} AND d.data_state = 'Normal'
+  </select>
+</mapper>

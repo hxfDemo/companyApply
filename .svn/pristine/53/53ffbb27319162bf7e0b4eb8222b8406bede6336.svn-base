@@ -1,0 +1,15 @@
+package com.apply.ism.service.impl;
+
+import com.apply.ism.entity.AnswerInfo;
+import com.apply.ism.mapper.AnswerInfoMapper;
+import com.apply.ism.service.IAnswerInfoService;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+
+@Service
+@Slf4j
+@RequiredArgsConstructor
+public class AnswerInfoServiceImpl extends ServiceImpl<AnswerInfoMapper, AnswerInfo> implements IAnswerInfoService {
+}

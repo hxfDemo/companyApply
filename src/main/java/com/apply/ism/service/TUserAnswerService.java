@@ -1,0 +1,15 @@
+package com.apply.ism.service;
+
+import com.apply.ism.entity.TUserAnswer;
+import com.apply.ism.entity.TUserTest;
+import com.baomidou.mybatisplus.extension.service.IService;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Map;
+
+public interface TUserAnswerService extends IService<TUserAnswer> {
+    @Transactional
+    Map<String,Object> insertOne(List<TUserAnswer> userAnswers, TUserTest userTest,Long uid);
+    Map<String,Object> insertMnOne(List<TUserAnswer> userAnswers, TUserTest userTest,Long uid);
+}

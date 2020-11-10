@@ -1,0 +1,79 @@
+package com.apply.ism.entity;
+
+import com.baomidou.mybatisplus.annotation.TableName;
+import java.io.Serializable;
+import java.util.Date;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
+
+/**
+ *
+ * @author Leon
+ * @date 2020-04-27
+ */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@TableName("t_question_test")
+public class TKnowledgeTest extends BaseEntity implements Serializable {
+    private Long createId;
+
+    private Date createTime;
+
+    private Long updateId;
+
+    private Date updateTime;
+
+    private String dataState;
+
+    private Integer sort;
+
+    private Long versionNo;
+
+    private String testName;
+
+    private String testType;
+
+    private Integer testCount;
+
+    private String nd;
+
+    private String testNode;
+
+    private Long companyId;
+
+    private Integer manNum;
+
+//    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private Date startTime;
+
+//    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private Date endTime;
+
+    private String testTime;
+
+    private Long paperId;
+
+    private String testNum;
+
+    private String remarks;
+
+    private String spare1;
+
+    private String spare2;
+
+    private String spare3;
+
+    private Integer mnks;
+
+    private Integer zsks;
+
+    private Integer mnkskm;
+
+    private Integer zskskm;
+
+    private static final long serialVersionUID = 1L;
+}

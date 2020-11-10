@@ -1,0 +1,28 @@
+server:
+  port: 8030
+  error:
+    path: /company/error
+    response-json-include-trace: false
+spring:
+  datasource:
+    url: jdbc:mysql://127.0.0.1:3306/advanced?autoReconnect=false&useUnicode=true&characterEncoding=utf8&allowMultiQueries=true&useSSL=false&serverTimezone=Asia/Shanghai
+    username: root
+    password: 123456
+    driver-class-name: com.mysql.jdbc.Driver
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+  mvc:
+    static-path-pattern: /wenmingban/**
+  resources:
+    static-locations: file:/usr/exdata1/wenmingban/
+api:
+  base:
+    upload:
+      path: /usr/exdata1/wenmingban
+    qrcode:
+      url: http://zzwmdw.zscg12319.cn/#/mbl
+logging:
+  level:
+    com.apply.ism.mapper : debug

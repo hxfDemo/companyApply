@@ -1,0 +1,217 @@
+package com.apply.ism.controller;
+
+import com.apply.ism.common.Result;
+import com.apply.ism.common.utils.TokenUtil;
+import com.apply.ism.entity.TPaperQuestion;
+import com.apply.ism.entity.TQuestion;
+import com.apply.ism.mapper.TPaperQuestionMapper;
+import com.apply.ism.mapper.TQuestionMapper;
+import com.apply.ism.utils.ReadQuestionExcel;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.github.pagehelper.PageHelper;
+import com.github.pagehelper.PageInfo;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@RequiredArgsConstructor
+@RestController
+@Log4j2
+@Validated
+@RequestMapping("/question")
+public class TQuestionController {
+
+    @Autowired
+    TQuestionMapper questionMapper;
+
+    @Value("${api.base.upload.path}")
+    private String filePath;
+
+    @Autowired
+    TPaperQuestionMapper paperQuestionMapper;
+
+    /**
+     * 查询题库中试题列表
+     * @return
+     */
+    @PostMapping("/questionList")
+    public Result questionList(String nd,String title,String type,Integer current, Integer size){
+        Map<String,Object> map = new HashMap<>();
+        PageHelper.startPage(current!=null?current:1,size!=null?size:10);
+        try {
+            QueryWrapper queryWrapper = new QueryWrapper<TQuestion>();
+            queryWrapper.eq("data_state","Normal");
+            if(StringUtils.isNotBlank(nd)){
+                queryWrapper.eq("nd",nd);
+            }
+            if(StringUtils.isNotBlank(title)){
+                queryWrapper.like("title",title);
+            }
+            if(StringUtils.isNotBlank(type)){
+                queryWrapper.eq("type",type);
+            }
+            List<TQuestion> tQuestions = questionMapper.selectList(queryWrapper);
+            PageInfo<TQuestion> page = new PageInfo<TQuestion>(tQuestions);
+            map.put("page",page);
+            return Result.ok(map);
+        }catch (Exception e){
+            log.error("题库中试题列表:"+e.getMessage());
+            return Result.error(901,"获取题库试题列表失败！");
+        }
+    }
+
+    /**
+     * 新增或修改题库中试题
+     * @param id
+     * @param title
+     * @param type
+     * @param knowledgeId
+     * @param rightAnswer
+     * @param optionA
+     * @param optionB
+     * @param optionC
+     * @param optionD
+     * @param score
+     * @param nd
+     * @return
+     */
+    @PostMapping("/insertOrUpdate")
+    public Result insertOrUpdate(Long id,@NotBlank(message = "题目[title]不能为空") String title, @NotBlank(message = "题目类型[type]不能为空")String type, Long knowledgeId,
+                            @NotBlank(message = "正确答案[rightAnswer]不能为空") String rightAnswer,
+                            @NotBlank(message = "选项A[optionA]不能为空")String optionA, @NotBlank(message = "选项B[optionB]不能为空")String optionB,
+                            String optionC, String optionD, @NotNull(message = "分数[score]不能为空") Double score, String nd){
+
+            try {
+                TQuestion question = new TQuestion();
+                question.setTitle(title);
+                question.setType(type);
+                question.setRightAnswer(rightAnswer);
+                question.setScore(score);
+                if(null != knowledgeId){
+                    question.setKnowledgeId(knowledgeId);
+                }
+                if(StringUtils.isNotBlank(optionA)&&!"undefined".equals(optionA)&&!"null".equals(optionA)){
+                    question.setOptiona(optionA);
+                }
+                if(StringUtils.isNotBlank(optionB)&&!"undefined".equals(optionB)&&!"null".equals(optionB)){
+                    question.setOptionb(optionB);
+                }
+                if(StringUtils.isNotBlank(optionC)&&!"undefined".equals(optionC)&&!"null".equals(optionC)){
+                    question.setOptionc(optionC);
+                }
+                if(StringUtils.isNotBlank(optionD)&&!"undefined".equals(optionD)&&!"null".equals(optionD)){
+                    question.setOptiond(optionD);
+                }
+                if(StringUtils.isNotBlank(nd)&&!"undefined".equals(nd)&&!"null".equals(nd)){
+                    question.setNd(nd);
+                }
+                if(null == id){
+                    question.setCreateId(TokenUtil.getUserId());
+                    question.setCreateTime(new Date());
+                    int insert = questionMapper.insert(question);
+                    if (insert<=0){
+                        return Result.error(902,"保存失败");
+                    }
+                    return Result.ok("保存成功");
+                }else {
+                    question.setId(id);
+                    question.setUpdateId(TokenUtil.getUserId());
+                    question.setUpdateTime(new Date());
+                    int update = questionMapper.updateById(question);
+                    if (update<=0){
+                        return Result.error(902,"编辑失败");
+                    }
+                    return Result.ok("编辑成功");
+                }
+            }catch (Exception e){
+                return Result.error(901,e.getMessage());
+            }
+    }
+
+    /**
+     * 删除题库中的试题
+     * @param id
+     * @return
+     */
+    @PostMapping("/deleteOne")
+    public Result deleteOne(@NotNull Long id){
+        try {
+            List<Map<String, Object>> maps = paperQuestionMapper.selectMaps(new QueryWrapper<TPaperQuestion>().eq("data_state", "Normal").eq("question_id", id));
+            if(null!=maps && !maps.isEmpty()&&maps.size()>0){
+                return Result.error(902,"该试题有对应的试卷不能删除");
+            }
+            TQuestion tQuestion = new TQuestion();
+            tQuestion.setId(id);
+            tQuestion.setDataState("Delete");
+            tQuestion.setUpdateId(TokenUtil.getUserId());
+            tQuestion.setUpdateTime(new Date());
+            int delete = questionMapper.updateById(tQuestion);
+            if (delete<=0){
+                return Result.error(903,"删除失败");
+            }
+            return Result.ok("删除成功");
+        }catch (Exception e){
+            return Result.error(901,e.getMessage());
+        }
+    }
+
+    /**
+     * excel批量导入试题到题库
+     * @param file
+     * @return
+     */
+    @PostMapping("/excelInsert")
+    public Result excelInsert(MultipartFile file,@NotBlank(message = "年度[nd]不能为空") String nd){
+        if(file.isEmpty()){
+            return Result.error(903,"上传文件不能为空");
+        }
+        File dir = new File(filePath);
+        if(!dir.exists()){
+            dir.mkdir();
+        }
+        String filename = file.getOriginalFilename();
+        File dest = new File(filePath+"/"+filename);
+        try {
+            file.transferTo(dest);
+            InputStream is = new FileInputStream(dest);
+            Map<String, List<TQuestion>> listMap = ReadQuestionExcel.addReportByExcel(is, filename);
+            if(null == listMap ){
+                return Result.error(904,"上传文件题目或选项A为空");
+            }
+            List<TQuestion> list = listMap.get("objs");
+            if(null == list || list.isEmpty() || list.size()<=0){
+                return Result.error(904,"上传文件内容为空");
+            }
+            for (TQuestion q:list ) {
+                q.setCreateId(TokenUtil.getUserId());
+                q.setCreateTime(new Date());
+                q.setNd(nd);
+                int insert = questionMapper.insert(q);
+                if (insert<=0){
+                    return Result.error(902,"导入数据失败");
+                }
+            }
+            return Result.ok("导入数据成功");
+        }catch (Exception e){
+            return Result.error(901,e.getMessage());
+        }
+    }
+}

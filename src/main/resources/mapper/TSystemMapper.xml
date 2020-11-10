@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.apply.ism.mapper.TSystemMapper">
+  <resultMap id="BaseResultMap" type="com.apply.ism.entity.TSystem">
+    <id column="id" jdbcType="BIGINT" property="id" />
+    <result column="create_id" jdbcType="BIGINT" property="createId" />
+    <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
+    <result column="update_id" jdbcType="BIGINT" property="updateId" />
+    <result column="update_time" jdbcType="TIMESTAMP" property="updateTime" />
+    <result column="data_state" jdbcType="VARCHAR" property="dataState" />
+    <result column="sort" jdbcType="INTEGER" property="sort" />
+    <result column="version_no" jdbcType="BIGINT" property="versionNo" />
+    <result column="sys_name" jdbcType="VARCHAR" property="sysName" />
+    <result column="nd" jdbcType="VARCHAR" property="nd" />
+    <result column="category" jdbcType="VARCHAR" property="category" />
+    <result column="project_name" jdbcType="VARCHAR" property="projectName" />
+    <result column="standard" jdbcType="VARCHAR" property="standard" />
+    <result column="contents" property="contents" jdbcType="LONGVARCHAR" />
+    <result column="score_standard" property="scoreStandard" jdbcType="LONGVARCHAR" />
+    <result column="fraction" jdbcType="VARCHAR" property="fraction" />
+    <result column="parent_id" jdbcType="BIGINT" property="parentId" />
+    <result column="grade" jdbcType="VARCHAR" property="grade" />
+    <result column="remarks" jdbcType="VARCHAR" property="remarks" />
+    <result column="spare1" jdbcType="VARCHAR" property="spare1" />
+    <result column="spare2" jdbcType="VARCHAR" property="spare2" />
+    <result column="spare3" jdbcType="VARCHAR" property="spare3" />
+  </resultMap>
+
+  <sql id="Base_Column_List">
+    id, create_id, create_time, update_id, update_time, data_state, sort, version_no, sys_name,
+    nd, category, project_name, `standard`, fraction, parent_id,grade, remarks, spare1, spare2,
+    spare3
+  </sql>
+  <sql id="Blob_Column_List">
+    contents, score_standard
+  </sql>
+
+  <select id="findByProject" resultType="com.apply.ism.entity.TSystem">
+    SELECT * FROM t_system WHERE data_state='Normal' and project_name = #{projectName} and fraction is null and nd=#{nd}
+  </select>
+
+  <select id="selectAll" resultType="com.apply.ism.entity.TSystem">
+    SELECT * FROM t_system where data_state='Normal' and nd=#{nd}
+  </select>
+
+  <select id="findFirstLevel" resultType="com.apply.ism.entity.TSystem">
+    SELECT * FROM t_system where data_state='Normal' and category is not null and project_name is null and nd=#{nd}
+  </select>
+
+  <select id="findSecondLevel" resultType="com.apply.ism.entity.TSystem">
+    SELECT * FROM t_system where data_state='Normal' and category is not null and project_name is not null and standard is null and nd=#{nd}
+  </select>
+
+  <select id="findThreeLevel" resultType="com.apply.ism.entity.TSystem">
+    SELECT * FROM t_system where data_state='Normal' and category is not null and project_name is not null and standard is not null and nd=#{nd}
+  </select>
+
+  <delete id="deleteByNd" parameterType="java.lang.String">
+    update t_system set data_state='Delete' where nd =#{nd}
+  </delete>
+
+</mapper>

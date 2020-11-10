@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.apply.ism.mapper.CompanyMapper">
+  <resultMap id="BaseResultMap" type="com.apply.ism.entity.Company">
+    <id column="id" jdbcType="BIGINT" property="id" />
+    <result column="create_id" jdbcType="BIGINT" property="createId" />
+    <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
+    <result column="update_id" jdbcType="BIGINT" property="updateId" />
+    <result column="update_time" jdbcType="TIMESTAMP" property="updateTime" />
+    <result column="data_state" jdbcType="VARCHAR" property="dataState" />
+    <result column="sort" jdbcType="INTEGER" property="sort" />
+    <result column="version_no" jdbcType="BIGINT" property="versionNo" />
+    <result column="remarks" jdbcType="VARCHAR" property="remarks" />
+    <result column="spare1" jdbcType="VARCHAR" property="spare1" />
+    <result column="spare2" jdbcType="VARCHAR" property="spare2" />
+    <result column="spare3" jdbcType="VARCHAR" property="spare3" />
+    <result column="ascription" jdbcType="BIGINT" property="ascription" />
+    <result column="company" jdbcType="VARCHAR" property="company" />
+    <result column="nature" jdbcType="BIGINT" property="nature" />
+    <result column="category" jdbcType="BIGINT" property="category" />
+    <result column="hierarchy" jdbcType="BIGINT" property="hierarchy" />
+    <result column="ssxt" jdbcType="BIGINT" property="ssxt" />
+    <result column="tontru" jdbcType="INTEGER" property="tontru" />
+    <result column="zcdw" jdbcType="BIGINT" property="zcdw" />
+    <result column="sftl" jdbcType="INTEGER" property="sftl" />
+    <result column="address" jdbcType="VARCHAR" property="address" />
+    <result column="introduce" jdbcType="VARCHAR" property="introduce" />
+    <result column="secrecy" jdbcType="INTEGER" property="secrecy" />
+    <result column="bzrs" jdbcType="INTEGER" property="bzrs" />
+    <result column="code_type" jdbcType="BIGINT" property="codeType" />
+    <result column="jgdmz" jdbcType="BIGINT" property="jgdmz" />
+    <result column="bzwj" jdbcType="BIGINT" property="bzwj" />
+    <result column="company_state" jdbcType="INTEGER" property="companyState" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    id, create_id, create_time, update_id, update_time, data_state, sort, version_no, remarks,
+    spare1, spare2, spare3, ascription, company, nature, category, `hierarchy`,
+    ssxt, tontru, zcdw, sftl, address, introduce, secrecy, bzrs, code_type, jgdmz, bzwj,
+    company_state
+  </sql>
+    <select id="getTontruInfo" resultType="java.util.Map">
+        SELECT
+            u.id,
+            c.company,
+            c.nature,
+            c.`bzrs`,
+            c.`sftl`,
+            u.`name` lly_name,
+            u.`phone` te
+        FROM
+            company c
+                JOIN users u
+                     ON u.`companyid` = c.`id`
+        WHERE 1 = 1
+          AND c.`zcdw` = #{id} AND u.`userstate`=1 AND u.`data_state`='Normal'
+    </select>
+  <select id="getZcInfos" resultType="java.util.Map">
+      SELECT
+          u.id,
+          c.company,
+          c.nature,
+          c.`bzrs`,
+          c.`sftl`,
+          u.`name` lly_name,
+          u.`phone` tel
+      FROM
+          company c
+              JOIN users u
+                   ON u.`companyid` = c.`id`
+      WHERE 1 = 1
+        AND c.id = #{zcdw} AND u.`userstate`=1 AND u.`data_state`='Normal'
+  </select>
+  <select id="getCompanyInfo" resultType="java.util.Map">
+      SELECT
+          c.`id`,
+          c.`company`
+      FROM
+          `company` c
+              JOIN users u
+                   ON u.`companyid` = c.id
+      WHERE u.`userstate` = 1
+        AND u.`data_state` = 'Normal'
+        AND c.`tontru` = 1
+  </select>
+  <select id="getStatisticsList" resultType="java.util.Map">
+      SELECT
+          c.company,
+          c.ascription,
+          (SELECT ROUND(AVG(m.`score`),2) FROM `material_info` m JOIN `t_system` s ON s.`id`=m.`evaluation_id` WHERE m.`company_id`=c.`id` AND s.`nd`=d.`years` AND m.`data_state`='Normal' AND m.auditstate=1) clsh,
+          (SELECT ROUND(AVG(ut.remarks),2) FROM t_user_test ut JOIN `t_question_test` qt ON qt.id = ut.knowledge_test_id WHERE ut.`data_state`='Normal' AND qt.nd=d.`years` AND ut.test_type='正式' AND qt.company_id=c.`id`) zscy,
+          (SELECT ROUND(AVG(a.total_score),2) FROM answer_info a WHERE a.companyid = c.`id` AND data_state = 'Normal' AND a.years=d.`years`) wjdc,
+          (SELECT SUM(clsh+zscy+wjdc) FROM (SELECT c.company,
+          (SELECT ROUND(AVG(m.`score`),2) FROM `material_info` m JOIN `t_system` s ON s.`id`=m.`evaluation_id` WHERE m.`company_id`=c.`id` AND s.`nd`=d.`years` AND m.`data_state`='Normal' AND m.auditstate=1) clsh,
+          (SELECT ROUND(AVG(ut.remarks),2) FROM t_user_test ut JOIN `t_question_test` qt ON qt.id = ut.knowledge_test_id WHERE ut.`data_state`='Normal' AND qt.nd=d.`years` AND ut.test_type='正式' AND qt.company_id=c.`id`) zscy,
+          (SELECT ROUND(AVG(a.total_score),2) FROM answer_info a WHERE a.companyid = c.`id` AND data_state = 'Normal' AND a.years=d.`years`) wjdc
+          FROM company c
+          JOIN users u ON c.`id`=u.`companyid` JOIN `declare_info` d ON d.`userid`=u.`id`
+          WHERE  d.`data_state`='Normal' AND d.`audit_status`=1) zcj) zcj
+      FROM
+          company c
+              JOIN users u ON c.`id`=u.`companyid` JOIN `declare_info` d ON d.`userid`=u.`id`
+      WHERE 1 = 1
+        AND d.`data_state`='Normal'
+        AND d.`audit_status`=1.
+      <if test="param1 != null and param1 !=''">
+        AND d.`years`=#{param1}
+      </if>
+      <if test="param2 != null and param2 !=''">
+          AND c.`company` LIKE CONCAT('%',#{param2},'%')
+      </if>
+      <if test="param3 != null and param3 > 0">
+          AND d.`declare_level`=#{param3}
+      </if>
+      <if test="param4 != null and param4 > 0">
+          AND c.`ascription`=#{param4}
+      </if>
+      <if test="param5 != null and param5 >= 0">
+          AND c.`tontru` =#{param5}
+      </if>
+  </select>
+    <select id="getCompanyStatisticsList" resultType="java.util.Map">
+        SELECT
+        d.id,
+        d.`company`,
+        d.`lly_name`,
+        d.`tel`,
+        c.`hierarchy`,
+        d.`address`,
+        d.`dwxz`,
+        d.`bzrs`,
+        d.declare_level sbcj,
+        c.`ascription` sswmb,
+        c.`tontru` zctc,
+        IF(
+        c.zcdw IS NULL,
+        NULL,
+        (SELECT
+        company
+        FROM
+        company
+        WHERE id = c.`zcdw`)
+        ) zcdw
+        FROM
+        `declare_info` d
+        JOIN company c
+        ON d.`company_id` = c.id
+        WHERE d.`data_state` = 'Normal'
+        AND d.`audit_status` = 1
+        <if test="param1 != null and param1 !=''">
+            AND d.`company` LIKE CONCAT('%',#{param1},'%')
+        </if>
+        <if test="param3 != null and param3 > 0">
+            AND d.`dwxz`=#{param3}
+        </if>
+        <if test="param4 != null and param4 >= 0">
+            AND c.`ascription` =#{param4}
+        </if>
+        <if test="param5 != null and param5 >= 0">
+            AND c.`tontru` =#{param5}
+        </if>
+    </select>
+    <select id="getTontru" resultType="java.util.Map">
+        SELECT
+            u.id,
+            c.company,
+            c.nature,
+            c.`bzrs`,
+            c.`sftl`,
+            u.`name` lly_name,
+            u.`phone` te
+        FROM
+            company c
+                JOIN users u
+                     ON u.`companyid` = c.`id`
+        WHERE 1 = 1
+          AND c.`id` in (${toString}) AND u.`userstate`=1 AND u.`data_state`='Normal'
+    </select>
+</mapper>
